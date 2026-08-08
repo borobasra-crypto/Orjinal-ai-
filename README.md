@@ -38,3 +38,14 @@ Example:
 Use **1280 × 720 px (16:9)** for the thumbnail.
 Each category/search page starts with **5 posts** and loads **3 more** when the user reaches the bottom.
 Favorites use LocalStorage. History stores the last **5 viewed posts**.
+
+
+## UI update
+- Profile navigation and profile drawer option removed.
+- Premium prompts keep the complete prompt text in the page but blur it until unlock.
+- Search input updates results without replacing the input element, so deleting text does not hide the mobile keyboard after one character.
+- Search history is saved in LocalStorage (up to 8 recent searches).
+- Prompt cards are single-column YouTube-style 16:9 thumbnails.
+- Category labels use Girl/Boy instead of AI Girl/AI Boy and include visual icons.
+- The welcome message is shown as a premium popup for the first 10 app opens, controlled by LocalStorage.
+- Added animated mesh gradients, glass surfaces, micro-interactions and premium motion styling.
