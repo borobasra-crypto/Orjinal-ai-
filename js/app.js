@@ -72,18 +72,29 @@ function render(){
  app.innerHTML=`<div class="app">${header()}${content}${nav()}</div>
  <div id="drawer" class="drawer" onclick="closeDrawer()"><aside class="drawerbox" onclick="event.stopPropagation()"><div class="brand" style="margin-bottom:18px"><span class="brandmark">✦</span>AI Prompt Vault</div>
  <a href="#" onclick="go('home')">🏠 Home</a><a href="#" onclick="go('search')">🔍 Explore</a><a href="#" onclick="go('favorites')">❤️ Favorites</a><a href="#" onclick="go('history')">🕐 History</a><a href="#" onclick="closeDrawer()">✕ Close</a></aside></div>`;
- maybeShowWelcome();
+}
+
+// The welcome popup is an entry-only experience: it can appear at most once per
+// calendar day, and for at most 10 unique days for a browser's localStorage.
+function localDateKey(){
+ const d=new Date();
+ const y=d.getFullYear();
+ const m=String(d.getMonth()+1).padStart(2,'0');
+ const day=String(d.getDate()).padStart(2,'0');
+ return `${y}-${m}-${day}`;
 }
 
 function maybeShowWelcome(){
- const count=store.welcomeCount();
- if(count>=10 || document.querySelector('.popup-backdrop'))return;
+ const today=localDateKey();
+ const state=store.welcomeState();
+ if((Number(state.count)||0)>=10 || state.lastShownDate===today || document.querySelector('.popup-backdrop'))return;
+ store.markWelcomeShown(today);
  const el=document.createElement('div');el.className='popup-backdrop';el.innerHTML=`<div class="popup" role="dialog" aria-modal="true">
  <div class="popup-orb">✦</div><h2>Premium AI prompt collection</h2><p class="muted">Create better with ready-to-use prompts.<br>Browse, save and unlock prompts. Favorites and history stay in your browser.</p>
  <button class="btn" onclick="closeWelcome()">Got it — Explore</button></div>`;
  document.body.appendChild(el);
 }
-window.closeWelcome=()=>{store.incrementWelcome();document.querySelector('.popup-backdrop')?.remove()};
+window.closeWelcome=()=>document.querySelector('.popup-backdrop')?.remove();
 
 window.go=r=>{route=r;query=r==='search'?'':query;render();scrollTo(0,0)};
 window.openPrompt=id=>go('details:'+id);
@@ -103,4 +114,6 @@ window.toggleFav=id=>{store.toggleFavorite(id);render()};
 window.copyPrompt=async id=>{let p=prompts.find(x=>x.id===id);try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}};
 window.unlockPrompt=id=>{if(confirm('Demo rewarded-ad step: press OK to simulate ad completion and reveal this premium prompt.')){store.unlock(id);render()}};
 render();
+// Show the welcome popup only once when the app is first opened for the day.
+maybeShowWelcome();
 window.addEventListener('scroll',()=>{if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){let list=route==='search'?listFor():(route==='home'?(cat==='All'?prompts:prompts.filter(p=>p.category.includes(cat))):[]);if(visibleCount<list.length)loadMore()}},{passive:true});
