@@ -6,10 +6,8 @@ export const APP_CONFIG={
   backend:false,
   botUsername:'PromtDex_bot',
 
-  // Monetag main zone. It is assembled at runtime so the full number is not
-  // sitting as a plain-text literal in the source. This is obfuscation only,
-  // not a security boundary.
-  monetagZoneParts:['16','84','68','55'],
+  
+  monetagZoneParts:['11','48','00','99'],
 
   monetagSdkUrl:'https://alwingulla.com/88/tag.min.js',
   vpnCheckUrl:'https://iplogs.com/v1/check',
@@ -17,3 +15,4 @@ export const APP_CONFIG={
 };
 
 export const getMonetagZone=()=>APP_CONFIG.monetagZoneParts.join('');
+11480099
