@@ -1,8 +1,8 @@
 // Add a new post by copying one object below and changing its fields.
-// category MUST contain one or more names from `categories`.
-// Example: category:['Girl','Cinematic','Realistic','Premium']
-// The post will automatically appear in those category pages.
-export const category=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
+// categories MUST contain one or more names from `categories`.
+// Example: categories:['Girl','Cinematic','Realistic','Premium']
+// The post will automatically appear in those categories pages.
+export const categories=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
 export const prompts=[
 {
   "id": '1',
@@ -14,6 +14,11 @@ export const prompts=[
     "Premium",
     "Thumbnail"
   ],
+  "tags": [
+    "Trending",
+    "Boy",
+    "Premium",
+    "Thumbnail"
   "image": "https://i.postimg.cc/3N8Gc73M/20250628-183138.jpg",
   "description": "Desc",
   "prompt": "Promtsnsnsnsnns",
@@ -24,6 +29,11 @@ export const prompts=[
   "title": "Sinama",
   "date": "2026-08-11",
   "category": [
+    "Trending",
+    "Boy",
+    "Thumbnail"
+  ],
+  "tags": [
     "Trending",
     "Boy",
     "Thumbnail"
