@@ -57,25 +57,38 @@ function loadMore(){
   if(isLoadingMore) return;
   isLoadingMore = true;
   
-  // গ্রিডের নিচে একটি লোডিং স্পিনার যুক্ত করার কোড
   const grid = document.querySelector('.grid');
   if(grid) {
     const spinner = document.createElement('div');
+    spinner.id = 'loading-spinner'; // সহজে মোছার জন্য একটি আইডি দেওয়া হলো
     spinner.style.cssText = 'grid-column: 1 / -1; display: flex; justify-content: center; padding: 20px;';
-    // স্পিনারের গোল আইকন এবং ঘোরার এনিমেশন 
-    spinner.innerHTML = `<div style="width: 35px; height: 35px; border: 4px solid #888; border-top: 4px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>`;
+    spinner.innerHTML = `<div style="width: 35px; height: 35px; border: 4px solid #888; border-top: 4px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>`;
     grid.appendChild(spinner);
   }
   
-  // "Load 3 more" বাটন থাকলে সেটি সাময়িকভাবে লুকিয়ে ফেলা
   const btn = document.querySelector('button[onclick="loadMore()"]');
   if(btn) btn.style.display = 'none';
 
-  // দেড় সেকেন্ড (১৫০০ মিলিসেকেন্ড) পরে পরবর্তী ৩টি আইটেম লোড হবে
   setTimeout(() => {
+    // কোন পেজে আছি তা নির্ণয় করে নতুন পোস্ট বের করা
+    const list = route === 'search' ? listFor() : prompts.filter(inCategory);
+    const newCards = list.slice(visibleCount, visibleCount + 3).map(card).join('');
+    
     visibleCount += 3;
     isLoadingMore = false;
-    render(); // পেজ আপডেট হয়ে নতুন আইটেমগুলো চলে আসবে
+
+    // স্পিনার মুছে নতুন কার্ডগুলো গ্রিডে যোগ করা (পেজ রিফ্রেশ ছাড়াই)
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) spinner.remove();
+
+    if (grid) {
+       grid.insertAdjacentHTML('beforeend', newCards);
+    }
+
+    // যদি আরও পোস্ট বাকি থাকে, তাহলে লোড বাটনটি আবার দেখাবে
+    if (btn) {
+        btn.style.display = visibleCount < list.length ? 'block' : 'none';
+    }
   }, 1500); 
 }
 
@@ -320,7 +333,23 @@ window.useSearch=q=>{query=q;render();requestAnimationFrame(()=>document.querySe
 window.clearSearchHistory=()=>{store.clearSearchHistory();render()};
 window.openDrawer=()=>document.querySelector('#drawer')?.classList.add('open');
 window.closeDrawer=()=>document.querySelector('#drawer')?.classList.remove('open');
-window.toggleFav=id=>{store.toggleFavorite(id);render()};
+window.toggleFav = id => {
+    store.toggleFavorite(id);
+    const isFav = store.favorites().includes(id);
+
+    // পুরো পেজ রিফ্রেশ না করে, পেজের সেভ বাটনটি খুঁজে বের করে আপডেট করবে
+    document.querySelectorAll(`button[onclick="event.stopPropagation();toggleFav('${id}')"], button[onclick="toggleFav('${id}')"]`).forEach(btn => {
+        if(isFav) {
+            btn.classList.add('saved');
+            // ডিটেইলস পেজের বাটন হলে লেখা সহ দেখাবে, নাহলে শুধু আইকন
+            btn.innerHTML = btn.classList.contains('save-action') ? bookmarkIcon(true) + '<span>Saved</span>' : bookmarkIcon(true);
+        } else {
+            btn.classList.remove('saved');
+            btn.innerHTML = btn.classList.contains('save-action') ? bookmarkIcon(false) + '<span>Save</span>' : bookmarkIcon(false);
+        }
+    });
+};
+
 window.copyPrompt=async id=>{
  const p=prompts.find(x=>x.id===id);if(!p)return;
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
