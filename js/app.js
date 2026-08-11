@@ -1,9 +1,15 @@
 import {prompts,categories} from './data.js';
 import {store} from './storage.js';
+import {APP_CONFIG} from '../config/app-config.js';
 
 const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand()}
 const app=document.querySelector('#app');
 let route='home',query='',cat='All',visibleCount=5,lastListKey='';
+const startParam=tg?.initDataUnsafe?.start_param;
+
+if(startParam && prompts.some(p=>p.id===startParam)){
+ route='details:'+startParam;
+}
 const user=tg?.initDataUnsafe?.user;
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -54,13 +60,17 @@ ${categoryChips()}${searchHistoryHtml()}<div id="search-results" class="grid">${
 
 function details(id){
  let p=prompts.find(x=>x.id===id);if(!p)return '<section class="page"><div class="empty">Prompt not found.</div></section>';
+ 
+ const shareLink=`https://t.me/${APP_CONFIG.botUsername}?startapp=${p.id}`;
+ 
+ 
  store.addHistory(id);let unlocked=store.unlocked().includes(id);
  return `<section class="page detail"><button class="btn secondary" onclick="goBack()">← Back</button><div style="height:12px"></div>
 <img src="${p.image}" alt="${esc(p.title)}"><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><p class="muted">${esc(p.description)}</p>
 <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
 ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3><p class="muted">The complete prompt is here, but protected with a premium blur. Unlock it to reveal and copy the text.</p>
 <div class="blurred-prompt">${esc(p.prompt)}<div class="blur-cover">🔒 Unlock to reveal</div></div><div class="progress"><i style="width:72%"></i></div><button class="btn" onclick="unlockPrompt('${p.id}')">▶ Watch Ad to Unlock</button></div>`
-:`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions"><button class="btn" onclick="copyPrompt('${p.id}')">📋 Copy Prompt</button><button class="btn secondary" onclick="toggleFav('${p.id}')">♥ ${store.favorites().includes(p.id)?'Saved':'Save'}</button><a class="btn secondary" href="${p.youtube}" target="_blank" rel="noopener">▶ YouTube Guide</a></div></div>`}
+:`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions"><button class="btn" onclick="copyPrompt('${p.id}')">📋 Copy Prompt</button><button class="btn secondary" onclick="sharePrompt('${p.id}')">📤 Share</button><button class="btn secondary" onclick="toggleFav('${p.id}')">♥ ${store.favorites().includes(p.id)?'Saved':'Save'}</button><a class="btn secondary" href="${p.youtube}" target="_blank" rel="noopener">▶ YouTube Guide</a></div></div>`}
 </section>`
 }
 
@@ -113,6 +123,23 @@ window.openDrawer=()=>document.querySelector('#drawer')?.classList.add('open');w
 window.toggleFav=id=>{store.toggleFavorite(id);render()};
 window.copyPrompt=async id=>{let p=prompts.find(x=>x.id===id);try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}};
 window.unlockPrompt=id=>{if(confirm('Demo rewarded-ad step: press OK to simulate ad completion and reveal this premium prompt.')){store.unlock(id);render()}};
+window.sharePrompt=async id=>{
+ const p=prompts.find(x=>x.id===id);
+ const link=`https://t.me/${APP_CONFIG.botUsername}?startapp=${p.id}`;
+ const text=`${p.title}\n\n${p.description}\n\n${link}`;
+
+ if(navigator.share){
+   try{
+     await navigator.share({
+       title:p.title,
+       text:text
+     });
+   }catch{}
+ }else{
+   await navigator.clipboard.writeText(text);
+   alert('Share link copied!');
+ }
+};
 render();
 // Show the welcome popup only once when the app is first opened for the day.
 maybeShowWelcome();
