@@ -313,29 +313,27 @@ function init(){
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
  
  window.addEventListener('scroll',()=>{
-   if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){
-     const list=route==='search'?listFor():(route==='home'?prompts.filter(inCategory):[]);
-     if(visibleCount<list.length)loadMore();
-   }
- },{passive:true});
+  const list = route === 'search'
+    ? listFor()
+    : route === 'home'
+      ? prompts.filter(inCategory)
+      : [];
+
+  const scrollBottom =
+    window.scrollY + window.innerHeight;
+
+  const pageHeight =
+    document.documentElement.scrollHeight;
+
+  if(
+    scrollBottom >= pageHeight - 300 &&
+    visibleCount < list.length
+  ){
+    loadMore();
+  }
+},{passive:true});
 }
 init();
 
 
-const loadMoreObserver = new IntersectionObserver((entries)=>{
-  if(entries[0].isIntersecting){
-    loadMore();
-  }
-},{
-  rootMargin:'300px'
-});
 
-function observeLoadMore(){
-  const target=document.querySelector('#loadMoreTrigger');
-
-  if(target){
-    loadMoreObserver.observe(target);
-  }
-}
-
-observeLoadMore();
