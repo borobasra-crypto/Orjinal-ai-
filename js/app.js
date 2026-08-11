@@ -15,7 +15,7 @@ const startParam=tg?.initDataUnsafe?.start_param;
 if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-const icon={All:'✨',Boy:'👨‍🎨',Girl:'👩‍🎨',Premium:'👑',Thumbnail:'▶️',Outfit:'👗',Filter:'🎨',Cinematic:'🎬',Realistic:'📷',Trending:'🔥'};
+const icon={New:'✨',All:'✨',Trending:'🔥'Boy:'👨‍🎨',Girl:'👩‍🎨',Premium:'👑',Thumbnail:'▶️',Outfit:'👗',Filter:'🎨',Cinematic:'🎬',Realistic:'📷'};
 
 const bookmarkIcon=filled=>filled
 ?`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V22l-6-3.5L6 22V3.5Z" fill="currentColor"/></svg>`
@@ -34,7 +34,8 @@ function nav(){
  return `<div class="bottom"><nav class="nav">
  <button class="${route==='home'?'active':''}" onclick="go('home')"><span>⌂</span>Home</button>
  <button class="${route==='search'?'active':''}" onclick="go('search')"><span>⌕</span>Explore</button>
- <button class="${route==='favorites'?'active':''}" onclick="go('favorites')"><span>🔖</span>Saved</button>
+ <button class="${route==='favorites'?'active':''}" onclick="go('favorites')"><span class="nav-save-icon">${bookmarkIcon(route==='favorites')}</span>Saved</button>
+ 
  <button class="${route==='history'?'active':''}" onclick="go('history')"><span>◷</span>History</button>
  </nav></div>`;
 }
@@ -46,14 +47,25 @@ function card(p){
  return `<article class="card" onclick="openPrompt('${esc(p.id)}')">
  <div class="thumbwrap"><img class="thumb" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" decoding="async">
  <button class="favorite-btn ${fav?'saved':''}" onclick="event.stopPropagation();toggleFav('${esc(p.id)}')" aria-label="${fav?'Remove from saved':'Save prompt'}">${bookmarkIcon(fav)}</button></div>
- <div class="cardbody"><div class="title">${esc(p.title)}</div><div class="meta">${p.category.slice(0,2).map(x=>esc(x)).join(' • ')}</div>${p.premium?'<span class="badge">👑 Premium</span>':''}</div>
+ <div class="cardbody"><div class="title">${esc(p.title)}</div><div class="meta">${p.category.slice(0,2).map(x=>esc(x)).join(' • ')}</div><div class="post-date">📅 ${esc(p.date||'')}</div>${p.premium?'<span class="badge">👑 Premium</span>':''}</div>
  </article>`;
 }
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
 function loadMore(){visibleCount+=3;render()}
 function moreButton(list){return visibleCount<list.length?`<button class="btn secondary" style="width:100%;margin-top:14px" onclick="loadMore()">Load 3 more</button>`:''}
 function inCategory(p){
- return cat==='All'||(cat==='Premium'?p.premium:p.category.includes(cat));
+ if(cat==='New'){
+   if(!p.date) return false;
+   const today=new Date();
+   const postDate=new Date(p.date+'T23:59:59');
+   const days=(today-postDate)/(1000*60*60*24);
+   return days>=0 && days<=7;
+ }
+
+ if(cat==='Premium') return p.premium;
+ if(cat==='All') return true;
+
+ return p.category.includes(cat);
 }
 function listFor(){
  return prompts.filter(p=>inCategory(p)&&(p.title+' '+p.tags.join(' ')+' '+p.description+' '+p.prompt).toLowerCase().includes(query.toLowerCase()));
