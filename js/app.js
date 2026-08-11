@@ -442,5 +442,8 @@ function updateNetworkDebug(){
 
 window.showNetworkDebug=showNetworkDebug;
 window.updateNetworkDebug=updateNetworkDebug;
-setTimeout(showNetworkDebug,1500);
+showNetworkDebug();
+
+setInterval(updateNetworkDebug,1000);
+
 init();
