@@ -2,7 +2,7 @@ const app = document.querySelector('#app');
 let route='home',query='',cat='All',visibleCount=5,lastListKey='';
 let categoryScrollLeft=0;
 let monetagPromise=null;
-const startParam=tg?.initDataUnsafe?.start_param;
+const startParam=window.tg?.initDataUnsafe?.start_param;
 
 if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
@@ -303,7 +303,7 @@ window.copyPrompt=async id=>{
 };
 
 function init(){
- if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
+ if(!isTelegramMiniApp(window.tg)){securityBlock('telegram');return;}
  render();
  maybeShowWelcome();
  // Monetag is loaded asynchronously after the first paint to reduce initial
