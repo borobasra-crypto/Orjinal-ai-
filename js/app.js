@@ -170,15 +170,23 @@ function adProblem(id){
  const p=prompts.find(x=>x.id===id);
  const el=document.createElement('div');
  el.className='popup-backdrop';
+ el.id='adProblemPopup'; // পপআপের আইডি দেওয়া হলো
  el.innerHTML=`<div class="popup" role="dialog" aria-modal="true" style="position: relative;">
- <button class="icon" onclick="closeAdProblem()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: inherit; padding: 0;">✕</button>
+ <button class="icon" onclick="closeAdProblem()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 22px; cursor: pointer; color: inherit; padding: 4px 8px; z-index: 10;" aria-label="Close">✕</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
  <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><a class="btn secondary" href="${esc(p?.youtube||'#')}" target="_blank" rel="noopener noreferrer">▶ YouTube Solution</a></div></div>`;
  document.body.appendChild(el);
 }
 
-function closeAdProblem(){document.querySelector('.popup-backdrop')?.remove();}
+function closeAdProblem(){
+  const popup = document.querySelector('#adProblemPopup') || document.querySelector('.popup-backdrop');
+  if(popup){
+    popup.remove();
+  }
+}
+window.closeAdProblem = closeAdProblem; // উইন্ডো স্কোপে গ্লোবালি বাইন্ড করা হলো
+
 
 function showAdCheckpoint(id){
  const p=prompts.find(x=>x.id===id);
