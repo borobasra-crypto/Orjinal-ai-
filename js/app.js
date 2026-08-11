@@ -372,57 +372,75 @@ function init(){
  },{passive:true});
 }
 function showNetworkDebug(){
-  if(document.querySelector('#netDebug')) return;
+  let el=document.querySelector('#netDebug');
+
+  if(!el){
+    el=document.createElement('div');
+    el.id='netDebug';
+    el.className='net-debug';
+
+    el.innerHTML=`
+      <button class="net-debug-close" onclick="this.parentElement.remove()">×</button>
+
+      <b>📊 PROMT DEX Network Usage</b>
+
+      <div class="net-debug-row">
+        <span>Total Loaded</span>
+        <strong id="netTotalMb">0 MB</strong>
+      </div>
+
+      <div class="net-debug-row">
+        <span>KB</span>
+        <strong id="netTotalKb">0 KB</strong>
+      </div>
+
+      <div class="net-debug-row">
+        <span>Requests</span>
+        <strong id="netRequests">0</strong>
+      </div>
+
+      <div class="net-debug-row">
+        <span>Current Page</span>
+        <strong id="netPage">home</strong>
+      </div>
+    `;
+
+    document.body.appendChild(el);
+  }
+
+  updateNetworkDebug();
+}
+
+function updateNetworkDebug(){
+  const el=document.querySelector('#netDebug');
+  if(!el)return;
 
   const entries=performance.getEntriesByType('resource');
 
   let bytes=0;
-  let count=0;
+  let requests=0;
 
   entries.forEach(e=>{
-    const size=e.transferSize||e.encodedBodySize||0;
+    const size=e.transferSize || e.encodedBodySize || 0;
+
     if(size>0){
       bytes+=size;
-      count++;
+      requests++;
     }
   });
 
-  const kb=(bytes/1024).toFixed(1);
-  const mb=(bytes/1024/1024).toFixed(2);
+  document.querySelector('#netTotalMb').textContent=
+    (bytes/1024/1024).toFixed(2)+' MB';
 
-  const el=document.createElement('div');
-  el.id='netDebug';
-  el.className='net-debug';
+  document.querySelector('#netTotalKb').textContent=
+    (bytes/1024).toFixed(1)+' KB';
 
-  el.innerHTML=`
-    <button class="net-debug-close" onclick="this.parentElement.remove()">×</button>
+  document.querySelector('#netRequests').textContent=requests;
 
-    <b>📊 PROMT DEX Load Usage</b>
-
-    <div class="net-debug-row">
-      <span>Total Loaded</span>
-      <strong>${mb} MB</strong>
-    </div>
-
-    <div class="net-debug-row">
-      <span>In KB</span>
-      <strong>${kb} KB</strong>
-    </div>
-
-    <div class="net-debug-row">
-      <span>Resources</span>
-      <strong>${count}</strong>
-    </div>
-
-    <div class="net-debug-row">
-      <span>Page</span>
-      <strong>${route}</strong>
-    </div>
-  `;
-
-  document.body.appendChild(el);
+  document.querySelector('#netPage').textContent=route;
 }
 
 window.showNetworkDebug=showNetworkDebug;
+window.updateNetworkDebug=updateNetworkDebug;
 setTimeout(showNetworkDebug,1500);
 init();
