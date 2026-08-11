@@ -1,12 +1,4 @@
-import {prompts,categories} from './data.js';
-import {store} from './storage.js';
-import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
-import {isTelegramMiniApp} from './security.js';
-
-const tg=window.Telegram?.WebApp||null;
-if(tg){try{tg.ready();tg.expand()}catch{}}
-
-const app=document.querySelector('#app');
+ector('#app');
 let route='home',query='',cat='All',visibleCount=5,lastListKey='';
 let categoryScrollLeft=0;
 let monetagPromise=null;
@@ -53,7 +45,9 @@ function card(p){
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
 
 function loadMore(){
-  const items=getItems();
+  const items = route === 'search'
+    ? listFor()
+    : prompts.filter(inCategory);
 
   if(visibleCount >= items.length) return;
 
@@ -61,7 +55,9 @@ function loadMore(){
   render();
 }
 
-function moreButton(list){return visibleCount<list.length?`<div id="loadMoreTrigger" style="height:20px"></div>`:''}
+function moreButton(list){
+  return '';
+}
 function inCategory(p){
 
 if(cat==='New'){
@@ -315,6 +311,7 @@ function init(){
  setTimeout(()=>{loadMonetagSdk().then(preloadMonetag).catch(()=>{})},650);
  // VPN check runs after first paint. A positive detection blocks the UI.
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
+ 
  window.addEventListener('scroll',()=>{
    if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){
      const list=route==='search'?listFor():(route==='home'?prompts.filter(inCategory):[]);
