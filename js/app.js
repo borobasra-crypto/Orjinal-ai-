@@ -312,25 +312,36 @@ function init(){
  // VPN check runs after first paint. A positive detection blocks the UI.
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
  
- window.addEventListener('scroll',()=>{
-  const list = route === 'search'
-    ? listFor()
-    : route === 'home'
-      ? prompts.filter(inCategory)
-      : [];
+ let loadingMore=false;
 
-  const scrollBottom =
+window.addEventListener('scroll',()=>{
+  if(loadingMore) return;
+
+  if(route!=='home' && route!=='search') return;
+
+  const list = route==='search'
+    ? listFor()
+    : prompts.filter(inCategory);
+
+  if(visibleCount>=list.length) return;
+
+  const bottom =
     window.scrollY + window.innerHeight;
 
-  const pageHeight =
+  const height =
     document.documentElement.scrollHeight;
 
-  if(
-    scrollBottom >= pageHeight - 300 &&
-    visibleCount < list.length
-  ){
+  if(bottom >= height - 200){
+
+    loadingMore=true;
+
     loadMore();
+
+    setTimeout(()=>{
+      loadingMore=false;
+    },300);
   }
+
 },{passive:true});
 }
 init();
