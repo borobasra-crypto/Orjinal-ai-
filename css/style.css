@@ -19,7 +19,7 @@ button,input{font:inherit}button{cursor:pointer;color:inherit}
 .hero{position:relative;padding:24px 4px 18px;overflow:hidden}.hero:before{content:"";position:absolute;width:170px;height:170px;right:-70px;top:-50px;border-radius:50%;background:rgba(168,85,247,.20);filter:blur(40px);animation:float 7s ease-in-out infinite}
 @keyframes float{50%{transform:translate(-15px,16px) scale(1.1)}}
 .eyebrow{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#d8b4fe}.hero h1{position:relative;font-size:clamp(29px,7vw,42px);line-height:1.03;letter-spacing:-1.5px;margin:10px 0}.hero p{position:relative;max-width:600px}
-.muted{color:var(--muted);line-height:1.55}.chips{display:flex;gap:9px;overflow:auto;padding:4px 0 13px;scroll-snap-type:x proximity}.chip{display:flex;align-items:center;gap:7px;flex:0 0 auto;scroll-snap-align:start;border:1px solid var(--line);background:rgba(255,255,255,.045);color:#d9d3e1;padding:9px 13px;border-radius:999px;transition:.22s}.chip:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}.chip.active{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:#c084fc;color:#fff;box-shadow:0 7px 22px rgba(124,58,237,.28)}
+.muted{color:var(--muted);line-height:1.55}.chips{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;padding:3px 0 9px;scroll-snap-type:x proximity;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{display:flex;align-items:center;gap:5px;flex:0 0 auto;scroll-snap-align:start;border:1px solid var(--line);background:rgba(255,255,255,.045);color:#d9d3e1;padding:7px 10px;border-radius:999px;font-size:11px;line-height:1;white-space:nowrap;transition:.22s}.chip:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}.chip.active{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:#c084fc;color:#fff;box-shadow:0 7px 22px rgba(124,58,237,.28)}
 .sectionhead{display:flex;justify-content:space-between;align-items:center;margin:15px 0 10px}.sectionhead h2{font-size:19px;margin:0}
 .searchwrap{position:relative;margin:2px 0 13px}.search{width:100%;height:50px;padding:0 45px 0 16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.065);color:#fff;outline:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 35px rgba(0,0,0,.13);transition:.2s}.search:focus{border-color:#a855f7;box-shadow:0 0 0 4px rgba(168,85,247,.12)}.searchicon{position:absolute;right:15px;top:14px;color:#bda8d2}
 .grid{display:flex;flex-direction:column;gap:15px}.card{position:relative;overflow:hidden;border:1px solid var(--line);background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border-radius:20px;box-shadow:0 18px 55px rgba(0,0,0,.28);cursor:pointer;transform:translateZ(0);animation:cardIn .45s both;transition:transform .22s,border-color .22s,box-shadow .22s}.card:hover{transform:translateY(-3px);border-color:rgba(192,132,252,.35);box-shadow:0 25px 65px rgba(0,0,0,.38)}@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -39,3 +39,28 @@ button,input{font:inherit}button{cursor:pointer;color:inherit}
 .empty{text-align:center;padding:34px 10px;border:1px dashed var(--line);border-radius:18px;color:var(--muted)}
 .center{min-height:100vh;display:grid;place-content:center;text-align:center;padding:20px}
 @media(max-width:430px){.page{padding:13px}.hero{padding-top:20px}.actions{grid-template-columns:1fr}.actions .btn:last-child{grid-column:auto}.cardbody{padding:13px}.title{font-size:15px}}
+
+/* PROMT DEX additions */
+.brand-logo{width:30px;height:30px;border-radius:9px;object-fit:cover;display:block;box-shadow:0 0 25px rgba(34,211,238,.28)}
+.brand{min-width:0}.brand span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.favorite-btn svg,.actions .btn svg,.save-action svg{width:19px;height:19px;display:block}
+.favorite-btn{display:grid;place-items:center}.favorite-btn.saved{color:#fbbf24;border-color:rgba(251,191,36,.35);box-shadow:0 8px 28px rgba(251,191,36,.12)}
+.save-action{display:flex;align-items:center;justify-content:center;gap:7px}
+.popup-orb{overflow:hidden}.popup-orb img{width:100%;height:100%;object-fit:cover}
+.popup-actions{grid-template-columns:1fr 1fr}.popup-actions .btn:last-child{grid-column:auto}
+.share-popup{max-width:560px}.share-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.share-head h2{margin:8px 0 0;font-size:21px}
+.share-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.share-option{min-height:84px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.055);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:.2s}
+.share-option:active{transform:scale(.96);background:rgba(255,255,255,.10)}
+.share-option b{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#06b6d4);font-size:17px}
+.share-option span{font-size:11px;font-weight:800;color:#ddd}
+.security-screen{min-height:100svh;display:grid;place-items:center;padding:22px;background:radial-gradient(600px 400px at 50% 15%,rgba(34,211,238,.12),transparent 65%),#07050d}
+.security-card{width:min(500px,100%);padding:28px;text-align:center;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.035));box-shadow:0 30px 100px #000b}
+.security-logo{width:92px;height:92px;border-radius:24px;object-fit:cover;margin:0 auto 20px;box-shadow:0 0 45px rgba(34,211,238,.24)}
+.security-card h1{font-size:30px;margin:10px 0 8px}.security-card .btn{margin-top:15px;width:100%}
+#unlockBtn:disabled{opacity:.68;cursor:wait}
+@media(max-width:430px){.share-grid{grid-template-columns:repeat(2,1fr)}.popup-actions{grid-template-columns:1fr}.popup-actions .btn:last-child{grid-column:auto}}
+
+.card{content-visibility:auto;contain-intrinsic-size:360px 300px}.thumb{background:#161020}
+
+.ad-cycle-note{margin:10px 0 0;padding:9px 11px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.035);font-size:12px;color:#bdb4c8}.chip span{font-size:13px;line-height:1}
