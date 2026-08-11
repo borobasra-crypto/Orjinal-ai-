@@ -424,4 +424,5 @@ function showNetworkDebug(){
 }
 
 window.showNetworkDebug=showNetworkDebug;
+setTimeout(showNetworkDebug,1500);
 init();
