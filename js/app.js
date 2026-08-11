@@ -51,7 +51,34 @@ function card(p){
  </article>`;
 }
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
-function loadMore(){visibleCount+=3;render()}
+let isLoadingMore = false; // একাধিকবার লোড হওয়া আটকাতে
+
+function loadMore(){
+  if(isLoadingMore) return;
+  isLoadingMore = true;
+  
+  // গ্রিডের নিচে একটি লোডিং স্পিনার যুক্ত করার কোড
+  const grid = document.querySelector('.grid');
+  if(grid) {
+    const spinner = document.createElement('div');
+    spinner.style.cssText = 'grid-column: 1 / -1; display: flex; justify-content: center; padding: 20px;';
+    // স্পিনারের গোল আইকন এবং ঘোরার এনিমেশন 
+    spinner.innerHTML = `<div style="width: 35px; height: 35px; border: 4px solid #888; border-top: 4px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>`;
+    grid.appendChild(spinner);
+  }
+  
+  // "Load 3 more" বাটন থাকলে সেটি সাময়িকভাবে লুকিয়ে ফেলা
+  const btn = document.querySelector('button[onclick="loadMore()"]');
+  if(btn) btn.style.display = 'none';
+
+  // দেড় সেকেন্ড (১৫০০ মিলিসেকেন্ড) পরে পরবর্তী ৩টি আইটেম লোড হবে
+  setTimeout(() => {
+    visibleCount += 3;
+    isLoadingMore = false;
+    render(); // পেজ আপডেট হয়ে নতুন আইটেমগুলো চলে আসবে
+  }, 1500); 
+}
+
 function moreButton(list){return visibleCount<list.length?`<button class="btn secondary" style="width:100%;margin-top:14px" onclick="loadMore()">Load 3 more</button>`:''}
 function inCategory(p){
  if(cat==='New'){
@@ -141,12 +168,16 @@ function securityBlock(reason){
 }
 function adProblem(id){
  const p=prompts.find(x=>x.id===id);
- const el=document.createElement('div');el.className='popup-backdrop';el.innerHTML=`<div class="popup" role="dialog" aria-modal="true">
+ const el=document.createElement('div');
+ el.className='popup-backdrop';
+ el.innerHTML=`<div class="popup" role="dialog" aria-modal="true" style="position: relative;">
+ <button class="icon" onclick="closeAdProblem()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: inherit; padding: 0;">✕</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
  <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><a class="btn secondary" href="${esc(p?.youtube||'#')}" target="_blank" rel="noopener noreferrer">▶ YouTube Solution</a></div></div>`;
  document.body.appendChild(el);
 }
+
 function closeAdProblem(){document.querySelector('.popup-backdrop')?.remove();}
 
 function showAdCheckpoint(id){
