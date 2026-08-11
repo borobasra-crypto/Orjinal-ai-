@@ -60,7 +60,7 @@ function listFor(){
 }
 function home(){
  const list=prompts.filter(inCategory);resetPagination('home|'+cat);
- return `<section class="page"><div class="hero"><div class="eyebrow">Premium AI prompt collection</div><h1>Create better with ready-to-use prompts.</h1><p class="muted">Browse, save and unlock prompts. Favorites and history stay in your browser.</p></div>${categoryChips()}<div class="sectionhead"><h2>${icon[cat]||'✦'} ${cat==='All'?'Trending Today':esc(cat)}</h2></div><div class="grid">${list.slice(0,visibleCount).map(card).join('')||'<div class="empty">No posts in this category.</div>'}</div>${moreButton(list)}</section>`;
+ return `<section class="page">${categoryChips()}<div class="sectionhead"><h2>${icon[cat]||'✦'} ${cat==='All'?'Trending Today':esc(cat)}</h2></div><div class="grid">${list.slice(0,visibleCount).map(card).join('')||'<div class="empty">No posts in this category.</div>'}</div>${moreButton(list)}</section>`;
 }
 function searchResultsHtml(){
  const list=listFor();resetPagination('search|'+cat+'|'+query);
