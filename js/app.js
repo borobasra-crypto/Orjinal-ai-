@@ -51,16 +51,32 @@ function card(p){
  </article>`;
 }
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
-function loadMore(){visibleCount+=3;render()}
-function moreButton(list){return visibleCount<list.length?`<button class="btn secondary" style="width:100%;margin-top:14px" onclick="loadMore()">Load 3 more</button>`:''}
+function loadMore(){
+  const items=getItems();
+
+  if(visibleCount >= items.length) return;
+
+  visibleCount += 3;
+  render();
+}*
+function moreButton(list){return visibleCount<list.length?`<div id="loadMoreTrigger" style="height:20px"></div>`:''}
 function inCategory(p){
- if(cat==='New'){
-   if(!p.date) return false;
-   const today=new Date();
-   const postDate=new Date(p.date+'T23:59:59');
-   const days=(today-postDate)/(1000*60*60*24);
-   return days>=0 && days<=7;
- }
+
+if(cat==='New'){
+  if(!p.date) return false;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const postDate = new Date(p.date+'T00:00:00');
+  postDate.setHours(0,0,0,0);
+
+  const days = Math.floor(
+    (today - postDate) / (1000*60*60*24)
+  );
+
+  return days >= 0 && days < 7;
+}
 
  if(cat==='Premium') return p.premium;
  if(cat==='All') return true;
@@ -142,6 +158,7 @@ function securityBlock(reason){
 function adProblem(id){
  const p=prompts.find(x=>x.id===id);
  const el=document.createElement('div');el.className='popup-backdrop';el.innerHTML=`<div class="popup" role="dialog" aria-modal="true">
+ <button class="popup-close" onclick="closeAdProblem()">×</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
  <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><a class="btn secondary" href="${esc(p?.youtube||'#')}" target="_blank" rel="noopener noreferrer">▶ YouTube Solution</a></div></div>`;
@@ -304,3 +321,26 @@ function init(){
  },{passive:true});
 }
 init();
+
+
+const loadMoreObserver = new IntersectionObserver((entries)=>{
+  if(entries[0].isIntersecting){
+    loadMore();
+  }
+},{
+  rootMargin:'300px'
+});
+
+function observeLoadMore(){
+  const target=document.querySelector('#loadMoreTrigger');
+
+  if(target){
+    loadMoreObserver.observe(target);
+  }
+}
+
+observeLoadMore();
+function closeAdProblem(){
+  const popup=document.querySelector('.popup-backdrop');
+  if(popup) popup.remove();
+}
