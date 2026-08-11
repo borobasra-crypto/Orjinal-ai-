@@ -84,7 +84,16 @@ function loadMore(){
     if (grid) {
        grid.insertAdjacentHTML('beforeend', newCards);
     }
+grid.querySelectorAll('img[loading="lazy"]').forEach(img=>{
+     if(!img.dataset.debugBound){
+       img.dataset.debugBound='1';
 
+       img.addEventListener('load',()=>{
+         setTimeout(updateNetworkDebug,300);
+       });
+     }
+   });
+}
     // যদি আরও পোস্ট বাকি থাকে, তাহলে লোড বাটনটি আবার দেখাবে
     if (btn) {
         btn.style.display = visibleCount < list.length ? 'block' : 'none';
@@ -293,7 +302,17 @@ async function unlockPrompt(id,skipCheckpoint=false){
    // Never unlock merely because the ad was opened/closed. A provider
    // non-valued result is explicitly rejected.
    if(event?.reward_event_type==='non_valued'){adProblem(id);return;}
-   store.unlock(id);
+   
+   // Ad Limit চেক করার লজিক
+   const p = prompts.find(x => x.id === id);
+   const requiredAds = p.adLimit || 1;
+   const newCount = store.incrementPromptAd(id);
+   
+   // যদি দেখা অ্যাড এর সংখ্যা লিমিটের সমান বা বেশি হয়, তবেই আনলক হবে
+   if (newCount >= requiredAds) {
+     store.unlock(id);
+   }
+   
    store.recordRewardedUnlock();
    render();
  }catch{
@@ -304,7 +323,18 @@ async function unlockPrompt(id,skipCheckpoint=false){
 window.unlockPrompt=unlockPrompt;
 
 window.closeWelcome=()=>document.querySelector('.popup-backdrop')?.remove();
-window.go=r=>{route=r;query=r==='search'?'':query;visibleCount=5;lastListKey='';render();scrollTo({top:0,behavior:'auto'});};
+window.go=r=>{
+  route=r;
+  query=r==='search'?'':query;
+  visibleCount=5;
+  lastListKey='';
+  render();
+  scrollTo({top:0,behavior:'auto'});
+
+  setTimeout(()=>{
+    updateNetworkDebug();
+  },500);
+};
 window.openPrompt=id=>go('details:'+id);
 window.goBack=()=>go('home');
 window.filterCat=c=>{
