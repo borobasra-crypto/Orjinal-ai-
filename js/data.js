@@ -19,6 +19,7 @@ export const prompts=[
     "Boy",
     "Premium",
     "Thumbnail"
+    ],
   "image": "https://i.postimg.cc/3N8Gc73M/20250628-183138.jpg",
   "description": "Desc",
   "prompt": "Promtsnsnsnsnns",
