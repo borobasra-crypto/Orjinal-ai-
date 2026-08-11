@@ -2,13 +2,13 @@
 // category MUST contain one or more names from `categories`.
 // Example: category:['Girl','Cinematic','Realistic','Premium']
 // The post will automatically appear in those category pages.
-export const categories=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
+export const category=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
 export const prompts=[
 {
   "id": 1,
   "title": "Sinama",
   "date": "2026-08-11",
-  "categories": [
+  "category": [
     "Trending",
     "Boy",
     "Premium",
@@ -23,7 +23,7 @@ export const prompts=[
   "id": 2,
   "title": "Sinama",
   "date": "2026-08-11",
-  "categories": [
+  "category": [
     "Trending",
     "Boy",
     "Thumbnail"
