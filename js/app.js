@@ -84,16 +84,7 @@ function loadMore(){
     if (grid) {
        grid.insertAdjacentHTML('beforeend', newCards);
     }
-grid.querySelectorAll('img[loading="lazy"]').forEach(img=>{
-     if(!img.dataset.debugBound){
-       img.dataset.debugBound='1';
 
-       img.addEventListener('load',()=>{
-         setTimeout(updateNetworkDebug,300);
-       });
-     }
-   });
-}
     // যদি আরও পোস্ট বাকি থাকে, তাহলে লোড বাটনটি আবার দেখাবে
     if (btn) {
         btn.style.display = visibleCount < list.length ? 'block' : 'none';
@@ -139,14 +130,29 @@ function searchPage(){
 function details(id){
  const p=prompts.find(x=>x.id===id);
  if(!p)return '<section class="page"><div class="empty">Prompt not found.</div></section>';
- const shareLink=`https://t.me/${APP_CONFIG.botUsername}?startapp=${encodeURIComponent(p.id)}`;
+ 
  store.addHistory(id);
  const unlocked=store.unlocked().includes(id);
+
+ // এড লিমিট এবং প্রগ্রেস ক্যালকুলেশন
+ const requiredAds = p.adLimit || 1;
+ 
+ // আপনার storage.js ফাইলে 'getPromptAdCount' নামে একটি ফাংশন থাকতে হবে, 
+ // যা নির্দিষ্ট আইডির জন্য দেখা এডের সংখ্যা রিটার্ন করবে।
+ // যদি ফাংশনটি না থাকে, তবে storage.js এ এটি যুক্ত করে নিতে হবে।
+ const watchedAds = store.getPromptAdCount ? store.getPromptAdCount(p.id) : 0; 
+ 
+ // প্রগ্রেস পার্সেন্টেজ হিসাব করা (সর্বোচ্চ ১০০%)
+ const progressPercent = Math.min((watchedAds / requiredAds) * 100, 100);
+
  return `<section class="page detail"><button class="btn secondary" onclick="goBack()">← Back</button><div style="height:12px"></div>
  <img src="${esc(p.image)}" alt="${esc(p.title)}" decoding="async"><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><p class="muted">${esc(p.description)}</p>
  <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
- ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3><p class="muted">Watch the rewarded ad to reveal the complete prompt. If an ad is unavailable, the prompt stays locked.</p>
- <div class="blurred-prompt">${esc(p.prompt)}<div class="blur-cover">🔒 Unlock to reveal</div></div><div class="progress"><i style="width:72%"></i></div>
+ 
+ ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3>
+ <p class="muted">Watch ${requiredAds} rewarded ad${requiredAds > 1 ? 's' : ''} to reveal the complete prompt. (Watched: ${watchedAds}/${requiredAds})</p>
+ <div class="blurred-prompt">${esc(p.prompt)}<div class="blur-cover">🔒 Unlock to reveal</div></div>
+ <div class="progress"><i style="width:${progressPercent}%"></i></div>
  <button id="unlockBtn" class="btn" onclick="unlockPrompt('${esc(p.id)}')">▶ Watch Ad to Unlock</button></div>`
  :`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions">
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
@@ -156,6 +162,7 @@ function details(id){
  </div></div>`}
  </section>`;
 }
+
 function favorites(){
  const a=store.favorites();
  return `<section class="page"><div class="hero"><div class="eyebrow">Your collection</div><h1 style="font-size:30px">Saved prompts.</h1><p class="muted">Favorites are stored only in this browser.</p></div><div class="grid">${prompts.filter(p=>a.includes(p.id)).map(card).join('')||'<div class="empty">♡ No saved prompts yet.</div>'}</div></section>`;
@@ -323,18 +330,7 @@ async function unlockPrompt(id,skipCheckpoint=false){
 window.unlockPrompt=unlockPrompt;
 
 window.closeWelcome=()=>document.querySelector('.popup-backdrop')?.remove();
-window.go=r=>{
-  route=r;
-  query=r==='search'?'':query;
-  visibleCount=5;
-  lastListKey='';
-  render();
-  scrollTo({top:0,behavior:'auto'});
-
-  setTimeout(()=>{
-    updateNetworkDebug();
-  },500);
-};
+window.go=r=>{route=r;query=r==='search'?'':query;visibleCount=5;lastListKey='';render();scrollTo({top:0,behavior:'auto'});};
 window.openPrompt=id=>go('details:'+id);
 window.goBack=()=>go('home');
 window.filterCat=c=>{
@@ -401,79 +397,4 @@ function init(){
    }
  },{passive:true});
 }
-function showNetworkDebug(){
-  let el=document.querySelector('#netDebug');
-
-  if(!el){
-    el=document.createElement('div');
-    el.id='netDebug';
-    el.className='net-debug';
-
-    el.innerHTML=`
-      <button class="net-debug-close" onclick="this.parentElement.remove()">×</button>
-
-      <b>📊 PROMT DEX Network Usage</b>
-
-      <div class="net-debug-row">
-        <span>Total Loaded</span>
-        <strong id="netTotalMb">0 MB</strong>
-      </div>
-
-      <div class="net-debug-row">
-        <span>KB</span>
-        <strong id="netTotalKb">0 KB</strong>
-      </div>
-
-      <div class="net-debug-row">
-        <span>Requests</span>
-        <strong id="netRequests">0</strong>
-      </div>
-
-      <div class="net-debug-row">
-        <span>Current Page</span>
-        <strong id="netPage">home</strong>
-      </div>
-    `;
-
-    document.body.appendChild(el);
-  }
-
-  updateNetworkDebug();
-}
-
-function updateNetworkDebug(){
-  const el=document.querySelector('#netDebug');
-  if(!el)return;
-
-  const entries=performance.getEntriesByType('resource');
-
-  let bytes=0;
-  let requests=0;
-
-  entries.forEach(e=>{
-    const size=e.transferSize || e.encodedBodySize || 0;
-
-    if(size>0){
-      bytes+=size;
-      requests++;
-    }
-  });
-
-  document.querySelector('#netTotalMb').textContent=
-    (bytes/1024/1024).toFixed(2)+' MB';
-
-  document.querySelector('#netTotalKb').textContent=
-    (bytes/1024).toFixed(1)+' KB';
-
-  document.querySelector('#netRequests').textContent=requests;
-
-  document.querySelector('#netPage').textContent=route;
-}
-
-window.showNetworkDebug=showNetworkDebug;
-window.updateNetworkDebug=updateNetworkDebug;
-showNetworkDebug();
-
-setInterval(updateNetworkDebug,1000);
-
 init();
