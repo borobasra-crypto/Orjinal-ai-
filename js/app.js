@@ -1,4 +1,4 @@
-ector('#app');
+const app = document.querySelector('#app');
 let route='home',query='',cat='All',visibleCount=5,lastListKey='';
 let categoryScrollLeft=0;
 let monetagPromise=null;
