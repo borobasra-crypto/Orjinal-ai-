@@ -7,7 +7,7 @@ export const APP_CONFIG={
   botUsername:'PromtDex_bot',
 
   
-  monetagZoneParts:'11480099',
+  monetagZoneParts:['11','48','00','99'],
 
   monetagSdkUrl:'https://alwingulla.com/88/tag.min.js',
   vpnCheckUrl:'https://iplogs.com/v1/check',
