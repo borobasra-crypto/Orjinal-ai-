@@ -371,4 +371,57 @@ function init(){
    }
  },{passive:true});
 }
+function showNetworkDebug(){
+  if(document.querySelector('#netDebug')) return;
+
+  const entries=performance.getEntriesByType('resource');
+
+  let bytes=0;
+  let count=0;
+
+  entries.forEach(e=>{
+    const size=e.transferSize||e.encodedBodySize||0;
+    if(size>0){
+      bytes+=size;
+      count++;
+    }
+  });
+
+  const kb=(bytes/1024).toFixed(1);
+  const mb=(bytes/1024/1024).toFixed(2);
+
+  const el=document.createElement('div');
+  el.id='netDebug';
+  el.className='net-debug';
+
+  el.innerHTML=`
+    <button class="net-debug-close" onclick="this.parentElement.remove()">×</button>
+
+    <b>📊 PROMT DEX Load Usage</b>
+
+    <div class="net-debug-row">
+      <span>Total Loaded</span>
+      <strong>${mb} MB</strong>
+    </div>
+
+    <div class="net-debug-row">
+      <span>In KB</span>
+      <strong>${kb} KB</strong>
+    </div>
+
+    <div class="net-debug-row">
+      <span>Resources</span>
+      <strong>${count}</strong>
+    </div>
+
+    <div class="net-debug-row">
+      <span>Page</span>
+      <strong>${route}</strong>
+    </div>
+  `;
+
+  document.body.appendChild(el);
+}
+
+window.showNetworkDebug=showNetworkDebug;
 init();
