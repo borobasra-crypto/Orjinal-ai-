@@ -18,7 +18,7 @@ export const prompts=[
   "description": "Desc",
   "prompt": "Promtsnsnsnsnns",
   "premium": false
-}
+},
   {
   "id": 2,
   "title": "Sinama",
