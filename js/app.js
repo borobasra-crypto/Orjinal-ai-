@@ -34,7 +34,7 @@ function nav(){
  return `<div class="bottom"><nav class="nav">
  <button class="${route==='home'?'active':''}" onclick="go('home')"><span>⌂</span>Home</button>
  <button class="${route==='search'?'active':''}" onclick="go('search')"><span>⌕</span>Explore</button>
- <button class="${route==='favorites'?'active':''}" onclick="go('favorites')"><span>♥</span>Saved</button>
+ <button class="${route==='favorites'?'active':''}" onclick="go('favorites')"><span>🔖</span>Saved</button>
  <button class="${route==='history'?'active':''}" onclick="go('history')"><span>◷</span>History</button>
  </nav></div>`;
 }
