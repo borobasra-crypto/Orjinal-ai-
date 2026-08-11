@@ -1,8 +1,16 @@
-const app = document.querySelector('#app');
+import {prompts,categories} from './data.js';
+import {store} from './storage.js';
+import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
+import {isTelegramMiniApp} from './security.js';
+
+const tg=window.Telegram?.WebApp||null;
+if(tg){try{tg.ready();tg.expand()}catch{}}
+
+const app=document.querySelector('#app');
 let route='home',query='',cat='All',visibleCount=5,lastListKey='';
 let categoryScrollLeft=0;
 let monetagPromise=null;
-const startParam=window.tg?.initDataUnsafe?.start_param;
+const startParam=tg?.initDataUnsafe?.start_param;
 
 if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
@@ -43,38 +51,16 @@ function card(p){
  </article>`;
 }
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
-
-function loadMore(){
-  const items = route === 'search'
-    ? listFor()
-    : prompts.filter(inCategory);
-
-  if(visibleCount >= items.length) return;
-
-  visibleCount += 3;
-  render();
-}
-
-function moreButton(list){
-  return '';
-}
+function loadMore(){visibleCount+=3;render()}
+function moreButton(list){return visibleCount<list.length?`<button class="btn secondary" style="width:100%;margin-top:14px" onclick="loadMore()">Load 3 more</button>`:''}
 function inCategory(p){
-
-if(cat==='New'){
-  if(!p.date) return false;
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  const postDate = new Date(p.date+'T00:00:00');
-  postDate.setHours(0,0,0,0);
-
-  const days = Math.floor(
-    (today - postDate) / (1000*60*60*24)
-  );
-
-  return days >= 0 && days < 7;
-}
+ if(cat==='New'){
+   if(!p.date) return false;
+   const today=new Date();
+   const postDate=new Date(p.date+'T23:59:59');
+   const days=(today-postDate)/(1000*60*60*24);
+   return days>=0 && days<=7;
+ }
 
  if(cat==='Premium') return p.premium;
  if(cat==='All') return true;
@@ -156,7 +142,6 @@ function securityBlock(reason){
 function adProblem(id){
  const p=prompts.find(x=>x.id===id);
  const el=document.createElement('div');el.className='popup-backdrop';el.innerHTML=`<div class="popup" role="dialog" aria-modal="true">
- <button class="popup-close" onclick="closeAdProblem()">×</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
  <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><a class="btn secondary" href="${esc(p?.youtube||'#')}" target="_blank" rel="noopener noreferrer">▶ YouTube Solution</a></div></div>`;
@@ -303,7 +288,7 @@ window.copyPrompt=async id=>{
 };
 
 function init(){
- if(!isTelegramMiniApp(window.tg)){securityBlock('telegram');return;}
+ if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
  render();
  maybeShowWelcome();
  // Monetag is loaded asynchronously after the first paint to reduce initial
@@ -311,40 +296,11 @@ function init(){
  setTimeout(()=>{loadMonetagSdk().then(preloadMonetag).catch(()=>{})},650);
  // VPN check runs after first paint. A positive detection blocks the UI.
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
- 
- let loadingMore=false;
-
-window.addEventListener('scroll',()=>{
-  if(loadingMore) return;
-
-  if(route!=='home' && route!=='search') return;
-
-  const list = route==='search'
-    ? listFor()
-    : prompts.filter(inCategory);
-
-  if(visibleCount>=list.length) return;
-
-  const bottom =
-    window.scrollY + window.innerHeight;
-
-  const height =
-    document.documentElement.scrollHeight;
-
-  if(bottom >= height - 200){
-
-    loadingMore=true;
-
-    loadMore();
-
-    setTimeout(()=>{
-      loadingMore=false;
-    },300);
-  }
-
-},{passive:true});
+ window.addEventListener('scroll',()=>{
+   if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){
+     const list=route==='search'?listFor():(route==='home'?prompts.filter(inCategory):[]);
+     if(visibleCount<list.length)loadMore();
+   }
+ },{passive:true});
 }
 init();
-
-
-
