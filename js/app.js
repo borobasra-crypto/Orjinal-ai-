@@ -150,9 +150,12 @@ function details(id){
  <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  
  ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3>
- <p class="muted">Watch ${requiredAds} rewarded ad${requiredAds > 1 ? 's' : ''} to reveal the complete prompt. (Watched: ${watchedAds}/${requiredAds})</p>
+ <p class="muted">Watch ${requiredAds} rewarded ad${requiredAds > 1 ? 's' : ''} to reveal the complete prompt.</p>
  <div class="blurred-prompt">${esc(p.prompt)}<div class="blur-cover">🔒 Unlock to reveal</div></div>
  <div class="progress"><i style="width:${progressPercent}%"></i></div>
+ <div style="display: flex; justify-content: flex-end; font-size: 13px; color: #8e8e93; margin-top: 6px; margin-bottom: 15px;">
+   Watched: ${watchedAds}/${requiredAds}
+ </div>
  <button id="unlockBtn" class="btn" onclick="unlockPrompt('${esc(p.id)}')">▶ Watch Ad to Unlock</button></div>`
  :`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions">
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
