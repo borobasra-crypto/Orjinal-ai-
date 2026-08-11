@@ -5,7 +5,7 @@
 export const category=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
 export const prompts=[
 {
-  "id": 1,
+  "id": '1',
   "title": "Sinama",
   "date": "2026-08-11",
   "category": [
@@ -20,7 +20,7 @@ export const prompts=[
   "premium": false
 },
   {
-  "id": 2,
+  "id": '2',
   "title": "Sinama",
   "date": "2026-08-11",
   "category": [
