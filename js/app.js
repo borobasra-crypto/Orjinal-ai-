@@ -15,7 +15,7 @@ const startParam=tg?.initDataUnsafe?.start_param;
 if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-const icon={New:'✨',All:'✨',Trending:'🔥'Boy:'👨‍🎨',Girl:'👩‍🎨',Premium:'👑',Thumbnail:'▶️',Outfit:'👗',Filter:'🎨',Cinematic:'🎬',Realistic:'📷'};
+const icon={New:'✨',All:'✨',Trending:'🔥',Boy:'👨‍🎨',Girl:'👩‍🎨',Premium:'👑',Thumbnail:'▶️',Outfit:'👗',Filter:'🎨',Cinematic:'🎬',Realistic:'📷'};
 
 const bookmarkIcon=filled=>filled
 ?`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V22l-6-3.5L6 22V3.5Z" fill="currentColor"/></svg>`
