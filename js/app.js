@@ -51,6 +51,7 @@ function card(p){
  </article>`;
 }
 function resetPagination(key){if(lastListKey!==key){lastListKey=key;visibleCount=5}}
+
 function loadMore(){
   const items=getItems();
 
@@ -58,7 +59,8 @@ function loadMore(){
 
   visibleCount += 3;
   render();
-}*
+}
+
 function moreButton(list){return visibleCount<list.length?`<div id="loadMoreTrigger" style="height:20px"></div>`:''}
 function inCategory(p){
 
@@ -340,7 +342,3 @@ function observeLoadMore(){
 }
 
 observeLoadMore();
-function closeAdProblem(){
-  const popup=document.querySelector('.popup-backdrop');
-  if(popup) popup.remove();
-}
