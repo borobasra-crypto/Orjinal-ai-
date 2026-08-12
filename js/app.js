@@ -273,13 +273,26 @@ async function loadMonetagSdk(){
  const zone=getMonetagZone();
  monetagPromise=new Promise(resolve=>{
    const existing=document.getElementById('monetag-sdk');
-   if(existing){resolve();return;}
-   const s=document.createElement('script');
-   s.id='monetag-sdk';s.async=true;s.src=APP_CONFIG.monetagSdkUrl;
-   s.dataset.zone=zone;s.dataset.sdk=`show_${zone}`;s.dataset.cfasync='false';
-   s.onload=()=>resolve();
-   s.onerror=()=>resolve();
-   document.head.appendChild(s);
+   if(!existing){
+     const s=document.createElement('script');
+     s.id='monetag-sdk';
+     s.async=true;
+     s.src=APP_CONFIG.monetagSdkUrl;
+     s.dataset.zone=zone;
+     s.dataset.sdk=`show_${zone}`;
+     s.dataset.cfasync='false';
+     s.onload=()=>resolve();
+     s.onerror=()=>resolve();
+     document.head.appendChild(s);
+     return;
+   }
+   if(typeof window[`show_${zone}`]==='function'){resolve();return;}
+   const started=Date.now();
+   const timer=setInterval(()=>{
+     if(typeof window[`show_${zone}`]==='function' || Date.now()-started>6000){
+       clearInterval(timer); resolve();
+     }
+   },100);
  });
  return monetagPromise;
 }
