@@ -284,6 +284,21 @@ async function loadMonetagSdk(){
  });
 }
 
+function setAdStatus(text,ready=false){
+ const el=document.querySelector('#adStatus');
+ if(!el)return;
+ el.textContent=text;
+ el.classList.toggle('ready',!!ready);
+}
+
+function setUnlockButton(enabled,text){
+ const b=document.querySelector('#unlockBtn');
+ if(!b)return;
+ b.disabled=!enabled;
+ b.classList.toggle('ad-loading',!enabled);
+ b.textContent=text || (enabled ? '▶ Watch Ad to Unlock' : '⏳ Loading Rewarded Ad…');
+}
+
 async function prepareRewardedButton(){
  const b=document.querySelector('#unlockBtn');if(!b)return;
  setUnlockButton(false,'⏳ Loading Rewarded Ad…');setAdStatus('⏳ Loading Monetag Rewarded Ad…');
