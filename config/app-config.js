@@ -5,14 +5,10 @@ export const APP_CONFIG={
   database:false,
   backend:false,
   botUsername:'PromtDex_bot',
-
-  
   monetagZone:'11557345',
-
   monetagSdkUrl:'//libtl.com/sdk.js',
   vpnCheckUrl:'https://iplogs.com/v1/check',
   vpnCheckTimeoutMs:2600
 };
 
 export const getMonetagZone=()=>APP_CONFIG.monetagZone;
-11557345
