@@ -41,7 +41,7 @@ Open:
 Find:
 
 ```js
-monetagZoneParts:['16','84','68','55']
+monetagZone:'11557345'
 ```
 
 The parts join together to make the current zone:
