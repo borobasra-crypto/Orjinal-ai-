@@ -440,7 +440,11 @@ async function playRewardedAd(){
       requestVar:'prompt_unlock'
     });
     const elapsed=Date.now()-started;
-
+console.log('REWARD DEBUG:', {
+  requiredSeconds,
+  elapsedSeconds: elapsed / 1000,
+  result
+});
     // NEVER trust Monetag's returned reward alone. A successful SDK result
     // is accepted only after our local minimum has elapsed.
     if(elapsed<requiredMs){
