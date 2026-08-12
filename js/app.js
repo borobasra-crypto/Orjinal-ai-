@@ -156,6 +156,7 @@ function details(id){
  <div style="display: flex; justify-content: flex-end; font-size: 13px; color: #8e8e93; margin-top: 6px; margin-bottom: 15px;">
    Watched: ${watchedAds}/${requiredAds}
  </div>
+ <div id="adStatus" class="ad-status" aria-live="polite">Ready — Rewarded Interstitial</div>
  <button id="unlockBtn" class="btn" onclick="unlockPrompt('${esc(p.id)}')">▶ Watch Ad to Unlock</button></div>`
  :`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions">
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
@@ -269,79 +270,123 @@ window.nativeShare=async(title,text)=>{try{if(navigator.share)await navigator.sh
 window.sharePrompt=id=>showShareSheet(id);
 
 async function loadMonetagSdk(){
- if(monetagPromise)return monetagPromise;
- const zone=getMonetagZone();
- monetagPromise=new Promise(resolve=>{
-   const existing=document.getElementById('monetag-sdk');
-   if(!existing){
-     const s=document.createElement('script');
-     s.id='monetag-sdk';
-     s.async=true;
-     s.src=APP_CONFIG.monetagSdkUrl;
-     s.dataset.zone=zone;
-     s.dataset.sdk=`show_${zone}`;
-     s.dataset.cfasync='false';
-     s.onload=()=>resolve();
-     s.onerror=()=>resolve();
-     document.head.appendChild(s);
-     return;
-   }
-   if(typeof window[`show_${zone}`]==='function'){resolve();return;}
-   const started=Date.now();
-   const timer=setInterval(()=>{
-     if(typeof window[`show_${zone}`]==='function' || Date.now()-started>6000){
-       clearInterval(timer); resolve();
-     }
-   },100);
- });
- return monetagPromise;
+  if(monetagPromise) return monetagPromise;
+
+  monetagPromise = new Promise(resolve=>{
+    const name='show_11557345';
+    if(typeof window[name]==='function'){ resolve(true); return; }
+
+    const existing=document.getElementById('monetag-sdk');
+    if(!existing){
+      const s=document.createElement('script');
+      s.id='monetag-sdk';
+      s.async=true;
+      s.src='//libtl.com/sdk.js';
+      s.dataset.zone='11557345';
+      s.dataset.sdk='show_11557345';
+      s.onload=()=>resolve(true);
+      s.onerror=()=>resolve(false);
+      document.head.appendChild(s);
+    }
+
+    const started=Date.now();
+    const timer=setInterval(()=>{
+      if(typeof window[name]==='function'){
+        clearInterval(timer);
+        resolve(true);
+      }else if(Date.now()-started>10000){
+        clearInterval(timer);
+        resolve(false);
+      }
+    },100);
+  });
+
+  return monetagPromise;
 }
+
 async function getAdFunction(){
- const zone=getMonetagZone(),name=`show_${zone}`;
- await loadMonetagSdk();
- if(typeof window[name]==='function')return window[name];
- const until=Date.now()+4000;
- while(Date.now()<until){
-   await new Promise(r=>setTimeout(r,150));
-   if(typeof window[name]==='function')return window[name];
- }
- return null;
+  await loadMonetagSdk();
+  if(typeof window.show_11557345==='function') return window.show_11557345;
+  return null;
 }
-async function preloadMonetag(){
- const fn=await getAdFunction();if(!fn)return;
- try{await fn({type:'preload',ymid:`preload_${Date.now()}`,requestVar:'premium_unlock'})}catch{}
+
+function setAdStatus(text,ok=false){
+  const el=document.querySelector('#adStatus');
+  if(!el)return;
+  el.textContent=text;
+  el.dataset.ok=ok?'1':'0';
 }
+
+async function playRewardedAd(){
+  const fn=await getAdFunction();
+  if(!fn) throw new Error('Monetag SDK is not ready');
+
+  // First try the actual Rewarded Interstitial exactly as Monetag provides it.
+  setAdStatus('⏳ Loading Rewarded Interstitial…');
+  try{
+    const result=await fn();
+    return {result,type:'interstitial'};
+  }catch(interstitialError){
+    // If Rewarded Interstitial is unavailable, use Monetag's Rewarded Popup.
+    setAdStatus('⏳ Interstitial unavailable — loading Rewarded Popup…');
+    try{
+      const result=await fn('pop');
+      return {result,type:'popup'};
+    }catch(popupError){
+      throw popupError;
+    }
+  }
+}
+
 async function unlockPrompt(id,skipCheckpoint=false){
- const btn=document.querySelector('#unlockBtn');
- if(!skipCheckpoint){
-   const cycle=store.adCycle();
-   if(cycle.count>=cycle.target){showAdCheckpoint(id);return;}
- }
- if(btn){btn.disabled=true;btn.textContent='⏳ Loading rewarded ad…';}
- const fn=await getAdFunction();
- if(!fn){if(btn){btn.disabled=false;btn.textContent='▶ Watch Ad to Unlock'}adProblem(id);return;}
- try{
-   const event=await fn({ymid:`unlock_${id}_${Date.now()}`,requestVar:'premium_unlock'});
-   // Never unlock merely because the ad was opened/closed. A provider
-   // non-valued result is explicitly rejected.
-   if(event?.reward_event_type==='non_valued'){adProblem(id);return;}
-   
-   // Ad Limit চেক করার লজিক
-   const p = prompts.find(x => x.id === id);
-   const requiredAds = p.adLimit || 1;
-   const newCount = store.incrementPromptAd(id);
-   
-   // যদি দেখা অ্যাড এর সংখ্যা লিমিটের সমান বা বেশি হয়, তবেই আনলক হবে
-   if (newCount >= requiredAds) {
-     store.unlock(id);
-   }
-   
-   store.recordRewardedUnlock();
-   render();
- }catch{
-   if(btn){btn.disabled=false;btn.textContent='▶ Watch Ad to Unlock';}
-   adProblem(id);
- }
+  const btn=document.querySelector('#unlockBtn');
+
+  // Existing checkpoint/skip logic is kept unchanged.
+  if(!skipCheckpoint){
+    const cycle=store.adCycle();
+    if(cycle.count>=cycle.target){showAdCheckpoint(id);return;}
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.classList.add('ad-loading');
+    btn.textContent='⏳ Loading Ad…';
+  }
+  setAdStatus('⏳ Loading Rewarded Interstitial…');
+
+  try{
+    const ad=await playRewardedAd();
+
+    // Promise resolution is the provider's successful ad completion signal.
+    // Do not unlock just because an ad request was started.
+    if(ad.type==='interstitial'){
+      setAdStatus('✓ Rewarded Interstitial completed',true);
+    }else{
+      setAdStatus('✓ Rewarded Popup completed',true);
+    }
+
+    const p=prompts.find(x=>x.id===id);
+    if(!p) throw new Error('Prompt not found');
+
+    const requiredAds=p.adLimit||1;
+    const newCount=store.incrementPromptAd(id);
+
+    if(newCount>=requiredAds){
+      store.unlock(id);
+    }
+
+    store.recordRewardedUnlock();
+    render();
+  }catch(error){
+    console.warn('Monetag rewarded ad error:',error);
+    if(btn){
+      btn.disabled=false;
+      btn.classList.remove('ad-loading');
+      btn.textContent='▶ Watch Ad to Unlock';
+    }
+    setAdStatus('⚠️ No rewarded ad available right now');
+    adProblem(id);
+  }
 }
 window.unlockPrompt=unlockPrompt;
 
