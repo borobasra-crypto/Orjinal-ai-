@@ -367,14 +367,24 @@ async function playRewardedAd(){
   const fn=await getAdFunction();
   if(!fn) throw new Error('Monetag SDK is not ready');
 
-  // Every rewarded-ad attempt gets a NEW random minimum watch time:
-  // 9, 10, 11 or 12 seconds.
-  const requiredSeconds=9+Math.floor(Math.random()*4);
+  // IMPORTANT: Monetag's own interstitial countdown can start before the
+  // Promise returned by show_11557345() resolves. That means its visible
+  // 15 -> 14 -> ... -> 10 countdown cannot be used as our reward timer.
+  //
+  // We still generate a fresh random target (7-12s) on every attempt, but
+  // we also enforce a hard 12-second local safety gate. This guarantees that
+  // closing when Monetag visually reaches 10 (only ~5s after 15) can NEVER
+  // grant a reward. The ad must remain open long enough for our own gate and
+  // then Monetag must return successfully.
+  const randomTargetSeconds=7+Math.floor(Math.random()*6);
+  const requiredSeconds=Math.max(randomTargetSeconds,12);
   const requiredMs=requiredSeconds*1000;
 
-  setAdStatus(`⏳ Watch the ad for at least ${requiredSeconds} seconds…`);
+  setAdStatus(`⏳ Reward unlock requires ${randomTargetSeconds}-${requiredSeconds}s minimum…`);
 
   try{
+    // Start our verification clock immediately before opening the ad.
+    // It is independent from Monetag's visible countdown.
     const started=Date.now();
     const result=await fn({
       ymid:`reward-${Date.now()}`,
@@ -382,7 +392,8 @@ async function playRewardedAd(){
     });
     const elapsed=Date.now()-started;
 
-    // Closing before this attempt's random threshold = NO reward.
+    // NEVER trust Monetag's returned reward alone. A successful SDK result
+    // is accepted only after our local minimum has elapsed.
     if(elapsed<requiredMs){
       throw new Error(`closed too early (${Math.floor(elapsed/1000)}s < ${requiredSeconds}s)`);
     }
