@@ -412,61 +412,40 @@ function setAdStatus(text,ok=false){
   el.dataset.ok=ok?'1':'0';
 }
 
+
 async function playRewardedAd(){
   const fn=await getAdFunction();
   if(!fn) throw new Error('Monetag SDK is not ready');
 
-  // IMPORTANT: Monetag's own interstitial countdown can start before the
-  // Promise returned by show_() resolves. That means its visible
-  // 15 -> 14 -> ... -> 10 countdown cannot be used as our reward timer.
-  //
-  // We still generate a fresh random target (7-12s) on every attempt, but
-  // we also enforce a hard 12-second local safety gate. This guarantees that
-  // closing when Monetag visually reaches 10 (only ~5s after 15) can NEVER
-  // grant a reward. The ad must remain open long enough for our own gate and
-  // then Monetag must return successfully.
-  const randomTargetSeconds=9+Math.floor(Math.random()*4);
-  const requiredSeconds=randomTargetSeconds;
-  const requiredMs=requiredSeconds*1000;
-
-  setAdStatus(`⏳ Reward unlock requires ${randomTargetSeconds}-${requiredSeconds}s minimum…`);
+  setAdStatus('⏳ Watching Rewarded Interstitial…');
 
   try{
-    // Start our verification clock immediately before opening the ad.
-    // It is independent from Monetag's visible countdown.
-    const started=Date.now();
     const result=await fn({
       ymid:`reward-${Date.now()}`,
       requestVar:'prompt_unlock'
     });
-    const elapsed=Date.now()-started;
-console.log('REWARD DEBUG:', {
-  requiredSeconds,
-  elapsedSeconds: elapsed / 1000,
-  result
-});
-    // NEVER trust Monetag's returned reward alone. A successful SDK result
-    // is accepted only after our local minimum has elapsed.
-    if(elapsed<requiredMs){
-      throw new Error(`closed too early (${Math.floor(elapsed/1000)}s < ${requiredSeconds}s)`);
-    }
 
-    // A click is NEVER a completed watch.
+    console.log('REWARD DEBUG:',result);
+
+    // Click কখনো reward নয়
     if(result && result.event_type==='click'){
       throw new Error('click is not a completion');
     }
 
-    // If Monetag explicitly reports a non-valued result, do not reward it.
+    // Monetag যদি non-valued result দেয় → reward নয়
     if(result && result.reward_event_type &&
        result.reward_event_type!=='valued'){
       throw new Error('Rewarded ad was not valued');
     }
 
-    return {result,type:'interstitial',requiredSeconds};
-  }catch(interstitialError){
-    // Do not fall back to popup for the unlock reward.
-    // A popup does not give this flow a reliable watch-duration signal.
-    throw interstitialError;
+    // SDK সফলভাবে rewarded completion return করলে তবেই success
+    return {
+      result,
+      type:'interstitial'
+    };
+
+  }catch(error){
+    throw error;
   }
 }
 
