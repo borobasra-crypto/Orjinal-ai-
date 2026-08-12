@@ -363,46 +363,87 @@ function setAdStatus(text,ok=false){
   el.dataset.ok=ok?'1':'0';
 }
 
+
+
 async function playRewardedAd(){
   const fn=await getAdFunction();
   if(!fn) throw new Error('Monetag SDK is not ready');
 
-  // Rewarded Interstitial is the primary rewarded format.
-  setAdStatus('⏳ Loading Rewarded Interstitial…');
+  /*
+   * প্রতিবার নতুন ad শুরু হলে 9-12 সেকেন্ডের একটি random
+   * minimum watch time তৈরি হবে।
+   */
+  const requiredWatchSeconds=9+Math.floor(Math.random()*4);
+  const started=Date.now();
+
+  setAdStatus(`⏳ Ad চলছে — ${requiredWatchSeconds} সেকেন্ড অপেক্ষা করুন…`);
+
   try{
-    const started=Date.now();
-    const result=await fn({ymid:`reward-${Date.now()}`,requestVar:'prompt_unlock'});
-    const elapsed=Date.now()-started;
+    const result=await fn({
+      ymid:`reward-${Date.now()}`,
+      requestVar:'prompt_unlock'
+    });
 
-    // Never accept a result that arrives before the required minimum watch time.
-    if(elapsed<10000) throw new Error('Rewarded ad was closed too early');
+    const elapsed=Math.floor((Date.now()-started)/1000);
 
-    // A click event is not treated as a completed watch.
-    if(result && result.event_type==='click') throw new Error('Rewarded ad click is not a completion');
+    /*
+     * Random সময় পূর্ণ হওয়ার আগে ad close/click করলে
+     * reward/count হবে না।
+     */
+    if(elapsed<requiredWatchSeconds){
+      throw new Error(
+        `Rewarded ad was closed too early (${elapsed}s/${requiredWatchSeconds}s)`
+      );
+    }
 
-    if(result && result.reward_event_type && result.reward_event_type!=='valued'){
+    /*
+     * Click event-কে completed reward হিসেবে গণনা করা হবে না।
+     */
+    if(result && result.event_type==='click'){
+      throw new Error('Rewarded ad click is not a completion');
+    }
+
+    if(
+      result &&
+      result.reward_event_type &&
+      result.reward_event_type!=='valued'
+    ){
       throw new Error('Rewarded ad was not valued');
     }
 
-    return {result,type:'interstitial'};
+    return {
+      result,
+      type:'interstitial',
+      requiredWatchSeconds,
+      elapsed
+    };
+
   }catch(interstitialError){
-    // Rewarded Popup is only enabled for users whose Mini App age is >= 2 days.
-    // It is a fallback, not the primary reward path.
-    if(appUserAgeDays()<2) throw interstitialError;
+
+    /*
+     * 2 দিনের আগে Rewarded Popup fallback হবে না।
+     */
+    if(appUserAgeDays()<2){
+      throw interstitialError;
+    }
 
     setAdStatus('⏳ Interstitial unavailable — loading Rewarded Popup…');
+
     const result=await fn({
       type:'pop',
       ymid:`reward-pop-${Date.now()}`,
       requestVar:'prompt_unlock_popup'
     });
 
-    // Popup opens an external advertiser page. Monetag documents that its
-    // Promise currently confirms the attempt, not a 10-second visit.
-    // Therefore do NOT pretend this is a 10-second verified watch.
-    return {result,type:'popup'};
+    /*
+     * Popup-এর ক্ষেত্রে Monetag client API থেকে
+     * 7–12 সেকেন্ডের verified watch জানা যায় না।
+     * তাই Popup দিয়ে reward দেওয়া হবে না।
+     */
+    throw new Error('Rewarded Popup is not a verified watch');
   }
 }
+
 
 async function unlockPrompt(id,skipCheckpoint=false){
   const btn=document.querySelector('#unlockBtn');
