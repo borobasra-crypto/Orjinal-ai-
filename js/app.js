@@ -157,7 +157,7 @@ function details(id){
    Watched: ${watchedAds}/${requiredAds}
  </div>
  <div id="adStatus" class="ad-status" aria-live="polite">Ready — Rewarded Interstitial</div>
- <button id="unlockBtn" class="btn ad-loading" disabled onclick="unlockPrompt('${esc(p.id)}')">⏳ Loading Rewarded Ad…</button></div>`
+ <button id="unlockBtn" class="btn" onclick="unlockPrompt('${esc(p.id)}')">▶ Watch Ad to Unlock</button></div>`
  :`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions">
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
  <button class="btn secondary" onclick="sharePrompt('${esc(p.id)}')">${shareIcon} Share</button>
@@ -185,6 +185,7 @@ function localDateKey(){
  const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function maybeShowWelcome(){
+  if(appUserAgeDays()<2)return;
  const today=localDateKey(),state=store.welcomeState();
  if((Number(state.count)||0)>=10||state.lastShownDate===today||document.querySelector('.popup-backdrop'))return;
  store.markWelcomeShown(today);
@@ -198,13 +199,6 @@ function securityBlock(reason){
  ?'PROMT DEX is available only from a normal Telegram connection. Turn off VPN, proxy or Tor and reopen the Mini App.'
  :'This app can only be opened inside the official Telegram Mini App. Please open PROMT DEX from Telegram.';
  document.body.innerHTML=`<main class="security-screen"><div class="security-card"><img src="assets/logo.webp" class="security-logo" alt="PROMT DEX"><div class="eyebrow">${esc(title)}</div><h1>Access blocked</h1><p class="muted">${esc(text)}</p><button class="btn" onclick="location.reload()">↻ Try again</button></div></main>`;
-}
-function showRewardedLimitPopup(id,until){
- const old=document.querySelector('#rewardedLimitPopup');if(old)old.remove();
- const mins=Math.max(1,Math.ceil((Number(until)-Date.now())/60000));
- const el=document.createElement('div');el.className='popup-backdrop';el.id='rewardedLimitPopup';
- el.innerHTML=`<div class="popup" role="dialog" aria-modal="true"><div class="popup-orb">⏳</div><h2>Rewarded limit reached</h2><p class="muted">You have reached the hourly Rewarded Interstitial/Popup limit. Please try again in about ${mins} minutes.</p><div class="actions popup-actions"><button class="btn" onclick="document.querySelector('#rewardedLimitPopup')?.remove()">OK</button></div></div>`;
- document.body.appendChild(el);
 }
 function adProblem(id){
  const p=prompts.find(x=>x.id===id);
@@ -276,103 +270,196 @@ window.copyShareText=async text=>{try{await navigator.clipboard.writeText(text)}
 window.nativeShare=async(title,text)=>{try{if(navigator.share)await navigator.share({title,text})}catch{}renderShareClose();};
 window.sharePrompt=id=>showShareSheet(id);
 
+let monetagPreloaded=false;
+let inAppStarted=false;
+let rewardAdBusy=false;
+
+function appUserAgeDays(){return store.appAgeDays ? store.appAgeDays() : 0;}
+
+function startInAppInterstitial(){
+  if(inAppStarted || appUserAgeDays()<2) return false;
+  const d=store.dailyOpenState ? store.dailyOpenState() : {count:0};
+  // First 2 opens each day are intentionally ad-free.
+  if((d.count||0)<=2) return false;
+  const fn=window.show_11557345;
+  if(typeof fn!=='function') return false;
+  try{
+    fn({
+      type:'inApp',
+      inAppSettings:{
+        frequency:2,
+        capping:0.1,
+        interval:30,
+        timeout:5,
+        everyPage:false
+      }
+    });
+    inAppStarted=true;
+    return true;
+  }catch(e){
+    console.warn('Monetag In-App Interstitial:',e);
+    return false;
+  }
+}
+
+async function preloadMonetag(){
+  const fn=await getAdFunction();
+  if(!fn || monetagPreloaded) return false;
+  try{
+    await fn({type:'preload'});
+    monetagPreloaded=true;
+    return true;
+  }catch(e){
+    monetagPreloaded=false;
+    return false;
+  }
+}
+
 async function loadMonetagSdk(){
- if(typeof window.show_11557345==='function')return true;
- return await new Promise(resolve=>{
-  const started=Date.now();const timer=setInterval(()=>{if(typeof window.show_11557345==='function'){clearInterval(timer);resolve(true)}else if(Date.now()-started>=10000){clearInterval(timer);resolve(false)}},100);
-  if(!document.querySelector('script[data-sdk="show_11557345"]')){const script=document.createElement('script');script.src='//libtl.com/sdk.js';script.dataset.zone='11557345';script.dataset.sdk='show_11557345';script.async=true;script.onerror=()=>{clearInterval(timer);resolve(false)};document.head.appendChild(script)}
- });
+  if(monetagPromise) return monetagPromise;
+
+  monetagPromise = new Promise(resolve=>{
+    const name='show_11557345';
+    if(typeof window[name]==='function'){ resolve(true); return; }
+
+    const existing=document.getElementById('monetag-sdk');
+    if(!existing){
+      const s=document.createElement('script');
+      s.id='monetag-sdk';
+      s.async=true;
+      s.src='//libtl.com/sdk.js';
+      s.dataset.zone='11557345';
+      s.dataset.sdk='show_11557345';
+      s.onload=()=>resolve(true);
+      s.onerror=()=>resolve(false);
+      document.head.appendChild(s);
+    }
+
+    const started=Date.now();
+    const timer=setInterval(()=>{
+      if(typeof window[name]==='function'){
+        clearInterval(timer);
+        resolve(true);
+      }else if(Date.now()-started>10000){
+        clearInterval(timer);
+        resolve(false);
+      }
+    },100);
+  });
+
+  return monetagPromise;
 }
 
-function setAdStatus(text,ready=false){
- const el=document.querySelector('#adStatus');
- if(!el)return;
- el.textContent=text;
- el.classList.toggle('ready',!!ready);
+async function getAdFunction(){
+  await loadMonetagSdk();
+  if(typeof window.show_11557345==='function') return window.show_11557345;
+  return null;
 }
 
-function setUnlockButton(enabled,text){
- const b=document.querySelector('#unlockBtn');
- if(!b)return;
- b.disabled=!enabled;
- b.classList.toggle('ad-loading',!enabled);
- b.textContent=text || (enabled ? '▶ Watch Ad to Unlock' : '⏳ Loading Rewarded Ad…');
+function setAdStatus(text,ok=false){
+  const el=document.querySelector('#adStatus');
+  if(!el)return;
+  el.textContent=text;
+  el.dataset.ok=ok?'1':'0';
 }
-
-async function prepareRewardedButton(){
- const b=document.querySelector('#unlockBtn');if(!b)return;
- setUnlockButton(false,'⏳ Loading Rewarded Ad…');setAdStatus('⏳ Loading Monetag Rewarded Ad…');
- const ready=await loadMonetagSdk();
- if(ready){setUnlockButton(true);setAdStatus('✓ Rewarded Ad ready',true)}
- else{setUnlockButton(false,'⚠️ Ad unavailable');setAdStatus('⚠️ Monetag ad could not be loaded');}
-}
-
-const MIN_REWARDED_SECONDS=10;
 
 async function playRewardedAd(){
- const ready=await loadMonetagSdk();
- if(!ready||typeof window.show_11557345!=='function') throw new Error('no-rewarded-ad');
- const blocked=store.rewardedBlockedUntil();
- if(blocked&&Date.now()<blocked) throw new Error('hourly-limit');
- let lastError=null;
- if(store.canUseRewarded('interstitial')){
+  const fn=await getAdFunction();
+  if(!fn) throw new Error('Monetag SDK is not ready');
+
+  // Rewarded Interstitial is the primary rewarded format.
   setAdStatus('⏳ Loading Rewarded Interstitial…');
-  const started=performance.now();
   try{
-   await window.show_11557345();
-   const elapsed=(performance.now()-started)/1000;
-   if(elapsed<MIN_REWARDED_SECONDS) throw new Error('closed-too-early');
-   store.recordRewarded('interstitial');
-   return {type:'interstitial',elapsed};
-  }catch(e){
-   if(e?.message==='closed-too-early') throw e;
-   lastError=e;
+    const started=Date.now();
+    const result=await fn({ymid:`reward-${Date.now()}`,requestVar:'prompt_unlock'});
+    const elapsed=Date.now()-started;
+
+    // Never accept a result that arrives before the required minimum watch time.
+    if(elapsed<10000) throw new Error('Rewarded ad was closed too early');
+
+    // A click event is not treated as a completed watch.
+    if(result && result.event_type==='click') throw new Error('Rewarded ad click is not a completion');
+
+    if(result && result.reward_event_type && result.reward_event_type!=='valued'){
+      throw new Error('Rewarded ad was not valued');
+    }
+
+    return {result,type:'interstitial'};
+  }catch(interstitialError){
+    // Rewarded Popup is only enabled for users whose Mini App age is >= 2 days.
+    // It is a fallback, not the primary reward path.
+    if(appUserAgeDays()<2) throw interstitialError;
+
+    setAdStatus('⏳ Interstitial unavailable — loading Rewarded Popup…');
+    const result=await fn({
+      type:'pop',
+      ymid:`reward-pop-${Date.now()}`,
+      requestVar:'prompt_unlock_popup'
+    });
+
+    // Popup opens an external advertiser page. Monetag documents that its
+    // Promise currently confirms the attempt, not a 10-second visit.
+    // Therefore do NOT pretend this is a 10-second verified watch.
+    return {result,type:'popup'};
   }
- }
- if(store.canUseRewarded('popup')){
-  setAdStatus('⏳ Loading Rewarded Popup…');
-  const started=performance.now();
-  try{
-   await window.show_11557345('pop');
-   const elapsed=(performance.now()-started)/1000;
-   if(elapsed<MIN_REWARDED_SECONDS) throw new Error('closed-too-early');
-   store.recordRewarded('popup');
-   return {type:'popup',elapsed};
-  }catch(e){
-   if(e?.message==='closed-too-early') throw e;
-   lastError=e;
-  }
- }
- const st=store.rewardedStatus();
- if(st.remainingInterstitial===0&&st.remainingPopup===0) throw new Error('hourly-limit');
- throw lastError||new Error('no-rewarded-ad');
 }
 
 async function unlockPrompt(id,skipCheckpoint=false){
- const btn=document.querySelector('#unlockBtn');
- if(btn?.disabled)return;
- if(!skipCheckpoint){const cycle=store.adCycle();if(cycle.count>=cycle.target){showAdCheckpoint(id);return}}
- const blocked=store.rewardedBlockedUntil();
- if(blocked&&Date.now()<blocked){showRewardedLimitPopup(id,blocked);return}
- if(btn){btn.disabled=true;btn.classList.add('ad-loading');btn.textContent='⏳ Loading Ad…'}
- try{
-  const ad=await playRewardedAd();
-  setAdStatus(`✓ Rewarded ${ad.type==='interstitial'?'Interstitial':'Popup'} completed`,true);
-  const p=prompts.find(x=>x.id===id);if(!p)throw new Error('Prompt not found');
-  const requiredAds=Math.max(1,Number(p.adLimit)||1);
-  const newCount=store.incrementPromptAd(p.id);
-  if(newCount>=requiredAds)store.unlock(p.id);
-  store.recordRewardedUnlock();
-  render();
- }catch(error){
-  console.warn('Monetag rewarded ad error:',error);
-  if(btn){btn.disabled=false;btn.classList.remove('ad-loading');btn.textContent='▶ Watch Ad to Unlock'}
-  const msg=String(error?.message||'');
-  if(msg==='closed-too-early')setAdStatus('✕ Ad was closed before 10 seconds — no reward',false);
-  else if(msg==='hourly-limit'){setAdStatus('⛔ Hourly rewarded-ad limit reached',false);showRewardedLimitPopup(id,Date.now()+2*60*60*1000)}
-  else {setAdStatus('⚠️ Both rewarded ad formats failed to load',false);adProblem(id)}
- }
+  const btn=document.querySelector('#unlockBtn');
+
+  if(!skipCheckpoint){
+    const cycle=store.adCycle();
+    if(cycle.count>=cycle.target){showAdCheckpoint(id);return;}
+  }
+
+  if(rewardAdBusy)return;
+  rewardAdBusy=true;
+
+  if(btn){
+    btn.disabled=true;
+    btn.classList.add('ad-loading');
+    btn.textContent='⏳ Loading Ad…';
+  }
+  setAdStatus('⏳ Loading Rewarded Interstitial…');
+
+  try{
+    const ad=await playRewardedAd();
+
+    // Rewarded Popup cannot be used as a 10-second verified reward with the
+    // current Monetag client API, so it never increments the unlock counter.
+    if(ad.type!=='interstitial'){
+      throw new Error('Rewarded Popup is not a verified 10-second completion');
+    }
+
+    setAdStatus('✓ Rewarded Interstitial completed',true);
+
+    const p=prompts.find(x=>x.id===id);
+    if(!p)throw new Error('Prompt not found');
+
+    const requiredAds=p.adLimit||1;
+    const newCount=store.incrementPromptAd(id);
+
+    if(newCount>=requiredAds)store.unlock(id);
+    store.recordRewardedUnlock();
+    render();
+  }catch(error){
+    console.warn('Monetag rewarded ad error:',error);
+    if(btn){
+      btn.disabled=false;
+      btn.classList.remove('ad-loading');
+      btn.textContent='▶ Watch Ad to Unlock';
+    }
+    setAdStatus('⚠️ Ad was not completed for 10 seconds — no reward',false);
+    // Do not show the generic "ad unavailable" popup for an intentional
+    // early close/click; it would make the flow annoying.
+    if(!/closed too early|click is not a completion|not a verified/i.test(String(error?.message||''))){
+      adProblem(id);
+    }
+  }finally{
+    rewardAdBusy=false;
+  }
 }
+
 window.unlockPrompt=unlockPrompt;
 
 window.closeWelcome=()=>document.querySelector('.popup-backdrop')?.remove();
@@ -427,53 +514,24 @@ window.copyPrompt=async id=>{
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
 };
 
-
-function maybeShowInApp(){
-  try{
-    const info=store.touchSession();
-    const TWO_DAYS=48*60*60*1000;
-    const state=info.state;
-
-    if(info.ageMs < TWO_DAYS) return;
-    if(Number(state.opens||0) <= 2) return;
-
-    const sixMinutes=6*60*1000;
-    if(Number(state.lastShownAt||0) && Date.now()-Number(state.lastShownAt)<sixMinutes) return;
-
-    if(typeof window.show_11557345!=='function') return;
-
-    store.markInAppShown();
-
-    window.show_11557345({
-      type:'inApp',
-      inAppSettings:{
-        frequency:2,
-        capping:0.1,
-        interval:30,
-        timeout:5,
-        everyPage:false
-      }
-    }).catch(error=>{
-      console.warn('Monetag In-App Interstitial:',error);
-    });
-  }catch(error){
-    console.warn('In-App eligibility error:',error);
-  }
-}
-
 function init(){
  if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
- render();
- maybeShowWelcome();
- setTimeout(()=>prepareRewardedButton(),150);
 
- // In-App Interstitial:
- // - first 2 opens of each day: no automatic ad
- // - 3rd+ open: eligible
- // - only after this app has been used for 48 hours
- // - at least 6 minutes between automatic In-App ads
- setTimeout(()=>maybeShowInApp(),1200);
- // VPN check runs after first paint. A positive detection blocks the UI.
+ store.firstSeen();
+ const openState=store.recordDailyOpen();
+ const age=appUserAgeDays();
+
+ render();
+ if(age>=2)maybeShowWelcome();
+
+ setTimeout(async()=>{
+   try{
+     await loadMonetagSdk();
+     await preloadMonetag();
+     if(age>=2 && openState.count>2)startInAppInterstitial();
+   }catch(e){}
+ },650);
+
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
  window.addEventListener('scroll',()=>{
    if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){
