@@ -156,7 +156,7 @@ function details(id){
  <div style="display: flex; justify-content: flex-end; font-size: 13px; color: #8e8e93; margin-top: 6px; margin-bottom: 15px;">
    Watched: ${watchedAds}/${requiredAds}
  </div>
- <div id="adStatus" class="ad-status" aria-live="polite">⏳ Loading Rewarded Ad…</div>
+ <div id="adStatus" class="ad-status" aria-live="polite">Ready — Rewarded Interstitial</div>
  <button id="unlockBtn" class="btn ad-loading" disabled onclick="unlockPrompt('${esc(p.id)}')">⏳ Loading Rewarded Ad…</button></div>`
  :`<div class="lock"><h3>📋 Full Prompt</h3><p style="line-height:1.7">${esc(p.prompt)}</p><div class="actions">
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
@@ -198,6 +198,13 @@ function securityBlock(reason){
  ?'PROMT DEX is available only from a normal Telegram connection. Turn off VPN, proxy or Tor and reopen the Mini App.'
  :'This app can only be opened inside the official Telegram Mini App. Please open PROMT DEX from Telegram.';
  document.body.innerHTML=`<main class="security-screen"><div class="security-card"><img src="assets/logo.webp" class="security-logo" alt="PROMT DEX"><div class="eyebrow">${esc(title)}</div><h1>Access blocked</h1><p class="muted">${esc(text)}</p><button class="btn" onclick="location.reload()">↻ Try again</button></div></main>`;
+}
+function showRewardedLimitPopup(id,until){
+ const old=document.querySelector('#rewardedLimitPopup');if(old)old.remove();
+ const mins=Math.max(1,Math.ceil((Number(until)-Date.now())/60000));
+ const el=document.createElement('div');el.className='popup-backdrop';el.id='rewardedLimitPopup';
+ el.innerHTML=`<div class="popup" role="dialog" aria-modal="true"><div class="popup-orb">⏳</div><h2>Rewarded limit reached</h2><p class="muted">You have reached the hourly Rewarded Interstitial/Popup limit. Please try again in about ${mins} minutes.</p><div class="actions popup-actions"><button class="btn" onclick="document.querySelector('#rewardedLimitPopup')?.remove()">OK</button></div></div>`;
+ document.body.appendChild(el);
 }
 function adProblem(id){
  const p=prompts.find(x=>x.id===id);
@@ -269,168 +276,86 @@ window.copyShareText=async text=>{try{await navigator.clipboard.writeText(text)}
 window.nativeShare=async(title,text)=>{try{if(navigator.share)await navigator.share({title,text})}catch{}renderShareClose();};
 window.sharePrompt=id=>showShareSheet(id);
 
-let sdkReadyPromise=null;
-const REWARDED_ZONE='11557345';
-const MIN_REWARDED_SECONDS=10;
-
-function setAdStatus(text,ok=false){
- const el=document.querySelector('#adStatus');
- if(!el)return;
- el.textContent=text;
- el.dataset.ok=ok?'1':'0';
-}
-function setUnlockButton(enabled,text){
- const b=document.querySelector('#unlockBtn');
- if(!b)return;
- b.disabled=!enabled;
- b.classList.toggle('ad-loading',!enabled);
- b.textContent=text||(enabled?'▶ Watch Ad to Unlock':'⏳ Loading Rewarded Ad…');
-}
-
 async function loadMonetagSdk(){
  if(typeof window.show_11557345==='function')return true;
- if(sdkReadyPromise)return sdkReadyPromise;
- sdkReadyPromise=new Promise(resolve=>{
-   const started=Date.now();
-   const finish=ok=>{clearInterval(timer);resolve(ok)};
-   const timer=setInterval(()=>{
-     if(typeof window.show_11557345==='function')finish(true);
-     else if(Date.now()-started>=10000)finish(false);
-   },100);
-   const existing=document.querySelector('script[data-sdk="show_11557345"]');
-   if(!existing){
-     const s=document.createElement('script');
-     s.src='//libtl.com/sdk.js';
-     s.dataset.zone=REWARDED_ZONE;
-     s.dataset.sdk='show_11557345';
-     s.async=true;
-     s.onload=()=>{};
-     s.onerror=()=>finish(false);
-     document.head.appendChild(s);
-   }
+ return await new Promise(resolve=>{
+  const started=Date.now();const timer=setInterval(()=>{if(typeof window.show_11557345==='function'){clearInterval(timer);resolve(true)}else if(Date.now()-started>=10000){clearInterval(timer);resolve(false)}},100);
+  if(!document.querySelector('script[data-sdk="show_11557345"]')){const script=document.createElement('script');script.src='//libtl.com/sdk.js';script.dataset.zone='11557345';script.dataset.sdk='show_11557345';script.async=true;script.onerror=()=>{clearInterval(timer);resolve(false)};document.head.appendChild(script)}
  });
- return sdkReadyPromise;
 }
 
 async function prepareRewardedButton(){
- const btn=document.querySelector('#unlockBtn');
- if(!btn)return;
- setUnlockButton(false,'⏳ Loading Rewarded Ad…');
- setAdStatus('⏳ Loading Monetag Rewarded Ad…');
+ const b=document.querySelector('#unlockBtn');if(!b)return;
+ setUnlockButton(false,'⏳ Loading Rewarded Ad…');setAdStatus('⏳ Loading Monetag Rewarded Ad…');
  const ready=await loadMonetagSdk();
- if(ready){
-   setUnlockButton(true,'▶ Watch Ad to Unlock');
-   setAdStatus('✓ Rewarded Ad ready',true);
- }else{
-   setUnlockButton(false,'⚠️ Ad unavailable');
-   setAdStatus('⚠️ Rewarded ad is not ready');
- }
+ if(ready){setUnlockButton(true);setAdStatus('✓ Rewarded Ad ready',true)}
+ else{setUnlockButton(false,'⚠️ Ad unavailable');setAdStatus('⚠️ Monetag ad could not be loaded');}
 }
 
-function showRewardedLimitPopup(id,until){
- const old=document.querySelector('#rewardedLimitPopup');
- if(old)old.remove();
- const mins=Math.max(1,Math.ceil((Number(until)-Date.now())/60000));
- const el=document.createElement('div');
- el.className='popup-backdrop';
- el.id='rewardedLimitPopup';
- el.innerHTML=`<div class="popup" role="dialog" aria-modal="true"><div class="popup-orb">⏳</div><h2>Rewarded limit reached</h2><p class="muted">Your hourly rewarded-ad limit has been reached. Please try again in about ${mins} minutes.</p><div class="actions popup-actions"><button class="btn" onclick="document.querySelector('#rewardedLimitPopup')?.remove()">OK</button></div></div>`;
- document.body.appendChild(el);
-}
-
-async function playOneRewarded(type){
- if(typeof window.show_11557345!=='function')throw new Error('sdk-not-ready');
- const started=performance.now();
- if(type==='interstitial'){
-   setAdStatus('⏳ Loading Rewarded Interstitial…');
-   await window.show_11557345();
- }else{
-   setAdStatus('⏳ Loading Rewarded Popup…');
-   await window.show_11557345('pop');
- }
- const elapsed=(performance.now()-started)/1000;
- if(elapsed<MIN_REWARDED_SECONDS)throw new Error('closed-too-early');
- return elapsed;
-}
+const MIN_REWARDED_SECONDS=10;
 
 async function playRewardedAd(){
  const ready=await loadMonetagSdk();
- if(!ready||typeof window.show_11557345!=='function')throw new Error('sdk-not-ready');
+ if(!ready||typeof window.show_11557345!=='function') throw new Error('no-rewarded-ad');
  const blocked=store.rewardedBlockedUntil();
- if(blocked&&Date.now()<blocked)throw new Error('hourly-limit');
+ if(blocked&&Date.now()<blocked) throw new Error('hourly-limit');
  let lastError=null;
-
- // Interstitial is always tried first while its hourly allowance remains.
  if(store.canUseRewarded('interstitial')){
-   try{
-     const elapsed=await playOneRewarded('interstitial');
-     store.recordRewarded('interstitial');
-     return {type:'interstitial',elapsed};
-   }catch(e){
-     if(String(e?.message)==='closed-too-early')throw e;
-     lastError=e;
-   }
+  setAdStatus('⏳ Loading Rewarded Interstitial…');
+  const started=performance.now();
+  try{
+   await window.show_11557345();
+   const elapsed=(performance.now()-started)/1000;
+   if(elapsed<MIN_REWARDED_SECONDS) throw new Error('closed-too-early');
+   store.recordRewarded('interstitial');
+   return {type:'interstitial',elapsed};
+  }catch(e){
+   if(e?.message==='closed-too-early') throw e;
+   lastError=e;
+  }
  }
-
- // Popup is only the fallback when Interstitial failed/unavailable,
- // or when Interstitial's hourly allowance is exhausted.
  if(store.canUseRewarded('popup')){
-   try{
-     const elapsed=await playOneRewarded('popup');
-     store.recordRewarded('popup');
-     return {type:'popup',elapsed};
-   }catch(e){
-     if(String(e?.message)==='closed-too-early')throw e;
-     lastError=e;
-   }
+  setAdStatus('⏳ Loading Rewarded Popup…');
+  const started=performance.now();
+  try{
+   await window.show_11557345('pop');
+   const elapsed=(performance.now()-started)/1000;
+   if(elapsed<MIN_REWARDED_SECONDS) throw new Error('closed-too-early');
+   store.recordRewarded('popup');
+   return {type:'popup',elapsed};
+  }catch(e){
+   if(e?.message==='closed-too-early') throw e;
+   lastError=e;
+  }
  }
-
- const status=store.rewardedStatus();
- if(status.remainingInterstitial===0&&status.remainingPopup===0){
-   store.setRewardedBlockedForTwoHours();
-   throw new Error('hourly-limit');
- }
+ const st=store.rewardedStatus();
+ if(st.remainingInterstitial===0&&st.remainingPopup===0) throw new Error('hourly-limit');
  throw lastError||new Error('no-rewarded-ad');
 }
 
 async function unlockPrompt(id,skipCheckpoint=false){
  const btn=document.querySelector('#unlockBtn');
  if(btn?.disabled)return;
- if(!skipCheckpoint){
-   const cycle=store.adCycle();
-   if(cycle.count>=cycle.target){showAdCheckpoint(id);return;}
- }
+ if(!skipCheckpoint){const cycle=store.adCycle();if(cycle.count>=cycle.target){showAdCheckpoint(id);return}}
  const blocked=store.rewardedBlockedUntil();
- if(blocked&&Date.now()<blocked){showRewardedLimitPopup(id,blocked);return;}
- setUnlockButton(false,'⏳ Loading Ad…');
+ if(blocked&&Date.now()<blocked){showRewardedLimitPopup(id,blocked);return}
+ if(btn){btn.disabled=true;btn.classList.add('ad-loading');btn.textContent='⏳ Loading Ad…'}
  try{
-   const ad=await playRewardedAd();
-   setAdStatus(`✓ ${ad.type==='interstitial'?'Rewarded Interstitial':'Rewarded Popup'} completed`,true);
-   const p=prompts.find(x=>x.id===id);
-   if(!p)throw new Error('prompt-not-found');
-   const requiredAds=Math.max(1,Number(p.adLimit)||1);
-   const newCount=store.incrementPromptAd(p.id);
-   if(newCount>=requiredAds)store.unlock(p.id);
-   store.recordRewardedUnlock();
-   render();
-   if(newCount<requiredAds){
-     requestAnimationFrame(()=>prepareRewardedButton());
-   }
+  const ad=await playRewardedAd();
+  setAdStatus(`✓ Rewarded ${ad.type==='interstitial'?'Interstitial':'Popup'} completed`,true);
+  const p=prompts.find(x=>x.id===id);if(!p)throw new Error('Prompt not found');
+  const requiredAds=Math.max(1,Number(p.adLimit)||1);
+  const newCount=store.incrementPromptAd(p.id);
+  if(newCount>=requiredAds)store.unlock(p.id);
+  store.recordRewardedUnlock();
+  render();
  }catch(error){
-   console.warn('Monetag rewarded ad error:',error);
-   const msg=String(error?.message||'');
-   if(msg==='closed-too-early'){
-     setUnlockButton(true,'▶ Watch Ad to Unlock');
-     setAdStatus('✕ Closed before 10 seconds — no reward',false);
-   }else if(msg==='hourly-limit'){
-     setUnlockButton(false,'⛔ Limit Reached');
-     setAdStatus('⛔ Rewarded ads temporarily unavailable',false);
-     showRewardedLimitPopup(id,Date.now()+2*60*60*1000);
-   }else{
-     setUnlockButton(true,'▶ Watch Ad to Unlock');
-     setAdStatus('⚠️ Both Rewarded formats failed',false);
-     adProblem(id);
-   }
+  console.warn('Monetag rewarded ad error:',error);
+  if(btn){btn.disabled=false;btn.classList.remove('ad-loading');btn.textContent='▶ Watch Ad to Unlock'}
+  const msg=String(error?.message||'');
+  if(msg==='closed-too-early')setAdStatus('✕ Ad was closed before 10 seconds — no reward',false);
+  else if(msg==='hourly-limit'){setAdStatus('⛔ Hourly rewarded-ad limit reached',false);showRewardedLimitPopup(id,Date.now()+2*60*60*1000)}
+  else {setAdStatus('⚠️ Both rewarded ad formats failed to load',false);adProblem(id)}
  }
 }
 window.unlockPrompt=unlockPrompt;
@@ -487,30 +412,53 @@ window.copyPrompt=async id=>{
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
 };
 
+
 function maybeShowInApp(){
- try{
-   const info=store.touchSession();
-   const TWO_DAYS=48*60*60*1000;
-   if(info.ageMs<TWO_DAYS)return;
-   if(Number(info.state.opens||0)<=2)return;
-   const sixMinutes=6*60*1000;
-   if(Number(info.state.lastShownAt||0)&&Date.now()-Number(info.state.lastShownAt)<sixMinutes)return;
-   if(typeof window.show_11557345!=='function')return;
-   store.markInAppShown();
-   Promise.resolve(window.show_11557345({
-     type:'inApp',
-     inAppSettings:{frequency:2,capping:0.1,interval:30,timeout:5,everyPage:false}
-   })).catch(e=>console.warn('Monetag In-App Interstitial:',e));
- }catch(e){console.warn('In-App eligibility error:',e)}
+  try{
+    const info=store.touchSession();
+    const TWO_DAYS=48*60*60*1000;
+    const state=info.state;
+
+    if(info.ageMs < TWO_DAYS) return;
+    if(Number(state.opens||0) <= 2) return;
+
+    const sixMinutes=6*60*1000;
+    if(Number(state.lastShownAt||0) && Date.now()-Number(state.lastShownAt)<sixMinutes) return;
+
+    if(typeof window.show_11557345!=='function') return;
+
+    store.markInAppShown();
+
+    window.show_11557345({
+      type:'inApp',
+      inAppSettings:{
+        frequency:2,
+        capping:0.1,
+        interval:30,
+        timeout:5,
+        everyPage:false
+      }
+    }).catch(error=>{
+      console.warn('Monetag In-App Interstitial:',error);
+    });
+  }catch(error){
+    console.warn('In-App eligibility error:',error);
+  }
 }
 
 function init(){
  if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
  render();
  maybeShowWelcome();
- setTimeout(()=>prepareRewardedButton(),100);
- setTimeout(()=>loadMonetagSdk().catch(()=>{}),650);
+ setTimeout(()=>prepareRewardedButton(),150);
+
+ // In-App Interstitial:
+ // - first 2 opens of each day: no automatic ad
+ // - 3rd+ open: eligible
+ // - only after this app has been used for 48 hours
+ // - at least 6 minutes between automatic In-App ads
  setTimeout(()=>maybeShowInApp(),1200);
+ // VPN check runs after first paint. A positive detection blocks the UI.
  import('./security.js').then(({runVpnCheck})=>runVpnCheck().then(result=>{if(result.blocked)securityBlock('vpn')}).catch(()=>{}));
  window.addEventListener('scroll',()=>{
    if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-160){
