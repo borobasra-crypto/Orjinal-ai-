@@ -9,9 +9,10 @@ export const APP_CONFIG={
   
   monetagZone:'11557345',
 
-  monetagSdkUrl:'https://alwingulla.com/88/tag.min.js',
+  monetagSdkUrl:'//libtl.com/sdk.js',
   vpnCheckUrl:'https://iplogs.com/v1/check',
   vpnCheckTimeoutMs:2600
 };
 
 export const getMonetagZone=()=>APP_CONFIG.monetagZone;
+11557345
