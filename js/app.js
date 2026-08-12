@@ -135,7 +135,7 @@ function details(id){
  const unlocked=store.unlocked().includes(id);
 
  // এড লিমিট এবং প্রগ্রেস ক্যালকুলেশন
- const requiredAds = p.adLimit || 1;
+ const requiredAds = p.adLimit || 2;
  
  // আপনার storage.js ফাইলে 'getPromptAdCount' নামে একটি ফাংশন থাকতে হবে, 
  // যা নির্দিষ্ট আইডির জন্য দেখা এডের সংখ্যা রিটার্ন করবে।
@@ -223,29 +223,69 @@ window.closeAdProblem = closeAdProblem; // উইন্ডো স্কোপে
 
 
 function showAdCheckpoint(id){
- const p=prompts.find(x=>x.id===id);
- const state=store.adCycle();
- const el=document.createElement('div');
- el.className='popup-backdrop';
- el.id='adCheckpoint';
- el.innerHTML=`<div class="popup" role="dialog" aria-modal="true">
-   <div class="popup-orb">▶</div>
-   <div class="eyebrow">Rewarded Ad</div>
-   <h2>Continue to unlock</h2>
-   <p class="muted">You have reached this ad checkpoint. Continue to the rewarded ad to unlock the prompt. You may close the ad at any time, but closing early will not grant the reward.</p>
-   <p class="ad-cycle-note">Next checkpoint: ${Math.max(0,state.target-state.count)} rewarded unlocks.</p>
-   <div class="actions popup-actions">
-     <button class="btn" onclick="continueCheckpoint('${esc(id)}')">Continue to Ad</button>
-     <button class="btn secondary" onclick="closeCheckpoint()">Cancel</button>
-   </div>
- </div>`;
- document.body.appendChild(el);
+  const state=store.adCycle();
+
+  const cooldownUntil=Number(state.cooldownUntil||0);
+  const remaining=Math.max(0,cooldownUntil-Date.now());
+
+  if(!cooldownUntil || remaining<=0){
+    return;
+  }
+
+  const hours=Math.floor(remaining/3600000);
+  const minutes=Math.floor((remaining%3600000)/60000);
+
+  const timeText=
+    hours>0
+      ? `${hours}h ${minutes}m`
+      : `${Math.max(1,minutes)}m`;
+
+  const el=document.createElement('div');
+
+  el.className='popup-backdrop';
+  el.id='adCheckpoint';
+
+  el.innerHTML=`
+    <div class="popup" role="dialog" aria-modal="true">
+
+      <div class="popup-orb">⏳</div>
+
+      <div class="eyebrow">Rewarded Ad Limit</div>
+
+      <h2>Ad Limit Reached</h2>
+
+      <p class="muted">
+        You have completed the maximum rewarded ads
+        for this cycle.
+      </p>
+
+      <p class="muted">
+        Please wait before watching rewarded ads again.
+      </p>
+
+      <div class="ad-cycle-note">
+        Next ads available in:
+        <strong>${timeText}</strong>
+      </div>
+
+      <div class="actions popup-actions">
+        <button
+          class="btn secondary"
+          onclick="closeCheckpoint()">
+          Close
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(el);
 }
-function closeCheckpoint(){document.querySelector('#adCheckpoint')?.remove();}
-async function continueCheckpoint(id){
- closeCheckpoint();
- await unlockPrompt(id,true);
+
+function closeCheckpoint(){
+  document.querySelector('#adCheckpoint')?.remove();
 }
+
 function showShareSheet(id){
  const p=prompts.find(x=>x.id===id);if(!p)return;
  const link=`https://t.me/${APP_CONFIG.botUsername}?startapp=${encodeURIComponent(p.id)}`;
@@ -281,7 +321,8 @@ function startInAppInterstitial(){
   const d=store.dailyOpenState ? store.dailyOpenState() : {count:0};
   // First 2 opens each day are intentionally ad-free.
   if((d.count||0)<=2) return false;
-  const fn=window.show_11557345;
+  const name=`show_${APP_CONFIG.monetagZone}`;
+const fn=window[name];
   if(typeof fn!=='function') return false;
   try{
     fn({
@@ -315,11 +356,13 @@ async function preloadMonetag(){
   }
 }
 
-async function loadMonetagSdk(){
+async function loadMonetagSdk(){ 
+const zone=APP_CONFIG.monetagZone;
+const name=`show_${zone}`;
   if(monetagPromise) return monetagPromise;
 
   monetagPromise = new Promise(resolve=>{
-    const name='show_11557345';
+    
     if(typeof window[name]==='function'){ resolve(true); return; }
 
     const existing=document.getElementById('monetag-sdk');
@@ -328,8 +371,8 @@ async function loadMonetagSdk(){
       s.id='monetag-sdk';
       s.async=true;
       s.src='//libtl.com/sdk.js';
-      s.dataset.zone='11557345';
-      s.dataset.sdk='show_11557345';
+      s.dataset.zone=zone;
+s.dataset.sdk=name;
       s.onload=()=>resolve(true);
       s.onerror=()=>resolve(false);
       document.head.appendChild(s);
@@ -352,7 +395,13 @@ async function loadMonetagSdk(){
 
 async function getAdFunction(){
   await loadMonetagSdk();
-  if(typeof window.show_11557345==='function') return window.show_11557345;
+
+  const name=`show_${APP_CONFIG.monetagZone}`;
+
+  if(typeof window[name]==='function'){
+    return window[name];
+  }
+
   return null;
 }
 
@@ -368,7 +417,7 @@ async function playRewardedAd(){
   if(!fn) throw new Error('Monetag SDK is not ready');
 
   // IMPORTANT: Monetag's own interstitial countdown can start before the
-  // Promise returned by show_11557345() resolves. That means its visible
+  // Promise returned by show_() resolves. That means its visible
   // 15 -> 14 -> ... -> 10 countdown cannot be used as our reward timer.
   //
   // We still generate a fresh random target (7-12s) on every attempt, but
@@ -376,8 +425,8 @@ async function playRewardedAd(){
   // closing when Monetag visually reaches 10 (only ~5s after 15) can NEVER
   // grant a reward. The ad must remain open long enough for our own gate and
   // then Monetag must return successfully.
-  const randomTargetSeconds=7+Math.floor(Math.random()*6);
-  const requiredSeconds=Math.max(randomTargetSeconds,12);
+  const randomTargetSeconds=9+Math.floor(Math.random()*4);
+  const requiredSeconds=randomTargetSeconds;
   const requiredMs=requiredSeconds*1000;
 
   setAdStatus(`⏳ Reward unlock requires ${randomTargetSeconds}-${requiredSeconds}s minimum…`);
@@ -420,10 +469,20 @@ async function playRewardedAd(){
 async function unlockPrompt(id,skipCheckpoint=false){
   const btn=document.querySelector('#unlockBtn');
 
-  if(!skipCheckpoint){
-    const cycle=store.adCycle();
-    if(cycle.count>=cycle.target){showAdCheckpoint(id);return;}
+  
+if(!skipCheckpoint){
+
+  const cycle=store.adCycle();
+
+  if(
+    cycle.cooldownUntil &&
+    Date.now() < cycle.cooldownUntil
+  ){
+    showAdCheckpoint(id);
+    return;
   }
+}
+
 
   if(rewardAdBusy)return;
   rewardAdBusy=true;
@@ -453,8 +512,15 @@ async function unlockPrompt(id,skipCheckpoint=false){
     const newCount=store.incrementPromptAd(id);
 
     if(newCount>=requiredAds)store.unlock(id);
-    store.recordRewardedUnlock();
-    render();
+    const cycleResult=store.recordRewardedUnlock();
+
+if(cycleResult.reached && cycleResult.cooldown){
+  // The current rewarded ad was valid and completed,
+  // but the global cycle is now exhausted.
+  setAdStatus('✓ Ad completed. Global ad limit reached.',true);
+}
+
+render();
   }catch(error){
     console.warn('Monetag rewarded ad error:',error);
     if(btn){

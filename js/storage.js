@@ -77,14 +77,14 @@ export const store={
   },
   clearSearchHistory:()=>localStorage.removeItem(K.searchHistory),
 
-  // Premium unlocks expire 6 hours after the prompt was unlocked.
+  // Premium unlocks expire 12 hours after the prompt was unlocked.
   // Expired unlocks AND their ad progress are removed automatically.
   unlocked:()=>{
     const a=get(K.unlocked,[]);
     const times=get(K.unlockTimes,{});
     const ads=get(K.promptAds,{});
     const now=Date.now();
-    const SIX_HOURS=6*60*60*1000;
+    const TWELVE_HOURS=12*60*60*1000;
     let changed=false;
 
     const active=a.filter(id=>{
@@ -97,7 +97,7 @@ export const store={
         return true;
       }
 
-      if(now-t>=SIX_HOURS){
+      if(now-t>=TWELVE_HOURS){
         delete times[id];
         delete ads[id];
         changed=true;
@@ -132,7 +132,7 @@ export const store={
   },
 
   getPromptAdCount:id=>{
-    // Also triggers 6-hour expiry cleanup for this prompt.
+    // Also triggers 12-hour expiry cleanup for this prompt.
     store.unlocked();
     return Number(get(K.promptAds,{})[id]||0);
   },
@@ -155,26 +155,103 @@ export const store={
 
   // Global rewarded-ad checkpoint. It persists across app restarts.
   adCycle:()=>{
-    const d=get(K.adCycle,null);
-    if(d&&Number.isInteger(d.target)&&d.target>=15&&d.target<=30&&Number.isInteger(d.count)&&d.count>=0)return d;
-    const fresh={target:15+Math.floor(Math.random()*16),count:0};
-    set(K.adCycle,fresh);return fresh;
-  },
-  recordRewardedUnlock:()=>{
-    const d=store.adCycle();
-    const next={...d,count:d.count+1};
-    if(next.count>=next.target){
-      const fresh={target:15+Math.floor(Math.random()*16),count:0,lastTarget:d.target};
-      set(K.adCycle,fresh);
-      return {reached:true,previousTarget:d.target,state:fresh};
+  const d=get(K.adCycle,null);
+
+  if(
+    d &&
+    Number.isInteger(d.target) &&
+    d.target>=15 &&
+    d.target<=30 &&
+    Number.isInteger(d.count) &&
+    d.count>=0
+  ){
+    // 2-hour cooldown check
+    if(d.cooldownUntil && Date.now() < d.cooldownUntil){
+      return d;
     }
-    set(K.adCycle,next);
-    return {reached:false,previousTarget:d.target,state:next};
-  },
-  resetAdCycle:()=>{
-    const fresh={target:15+Math.floor(Math.random()*16),count:0};
-    set(K.adCycle,fresh);return fresh;
-  },
+
+    // Cooldown finished → start a new cycle
+    if(d.cooldownUntil && Date.now() >= d.cooldownUntil){
+      const fresh={
+        target:15+Math.floor(Math.random()*16),
+        count:0,
+        cooldownUntil:0
+      };
+      set(K.adCycle,fresh);
+      return fresh;
+    }
+
+    return d;
+  }
+
+  const fresh={
+    target:15+Math.floor(Math.random()*16),
+    count:0,
+    cooldownUntil:0
+  };
+
+  set(K.adCycle,fresh);
+  return fresh;
+},
+
+recordRewardedUnlock:()=>{
+  const d=store.adCycle();
+
+  // Already in cooldown
+  if(d.cooldownUntil && Date.now() < d.cooldownUntil){
+    return {
+      reached:true,
+      cooldown:true,
+      previousTarget:d.target,
+      state:d
+    };
+  }
+
+  const next={
+    ...d,
+    count:d.count+1
+  };
+
+  if(next.count>=next.target){
+
+    // 2-hour cooldown starts now
+    const cooldownUntil=Date.now()+(2*60*60*1000);
+
+    const locked={
+      ...next,
+      cooldownUntil
+    };
+
+    set(K.adCycle,locked);
+
+    return {
+      reached:true,
+      cooldown:true,
+      previousTarget:d.target,
+      state:locked
+    };
+  }
+
+  set(K.adCycle,next);
+
+  return {
+    reached:false,
+    cooldown:false,
+    previousTarget:d.target,
+    state:next
+  };
+},
+
+resetAdCycle:()=>{
+  const fresh={
+    target:15+Math.floor(Math.random()*16),
+    count:0,
+    cooldownUntil:0
+  };
+
+  set(K.adCycle,fresh);
+  return fresh;
+},
 
   // "Account age" here means first use of this Mini App on this browser.
   // Telegram does not expose the real Telegram-account creation date to a Mini App.
