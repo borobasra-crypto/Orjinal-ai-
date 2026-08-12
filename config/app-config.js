@@ -15,4 +15,4 @@ export const APP_CONFIG={
 };
 
 export const getMonetagZone=()=>APP_CONFIG.monetagZoneParts.join('');
-11480099
+11557345
