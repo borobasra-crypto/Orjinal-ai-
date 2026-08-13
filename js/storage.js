@@ -9,7 +9,8 @@ const K={
   adCycle:'apv_ad_cycle',
   promptAds:'apv_prompt_ads',
   firstSeen:'apv_first_seen',
-  dailyOpens:'apv_daily_opens'
+  dailyOpens:'apv_daily_opens',
+  promptResetDate:'apv_prompt_reset_date'
 };
 
 const MAX_STORAGE_BYTES=4.5*1024*1024;
@@ -77,53 +78,40 @@ export const store={
   },
   clearSearchHistory:()=>localStorage.removeItem(K.searchHistory),
 
-  // Premium unlocks expire 12 hours after the prompt was unlocked.
-  // Expired unlocks AND their ad progress are removed automatically.
+  // Premium unlocks + per-prompt ad progress reset once per local calendar day.
+  // All prompts unlocked/watched today are cleared together on the next day.
+  // Other LocalStorage data (favorites, history, settings, welcome, ad cycle, etc.)
+  // is intentionally preserved.
+  resetDailyPromptState:()=>{
+    const today=localDateKey();
+    const last=localStorage.getItem(K.promptResetDate);
+
+    if(last===today)return false;
+
+    // First run: establish the current day without deleting anything.
+    if(!last){
+      try{localStorage.setItem(K.promptResetDate,today)}catch{}
+      return false;
+    }
+
+    // New day: reset ONLY prompt unlock/ad-progress state.
+    try{
+      localStorage.removeItem(K.unlocked);
+      localStorage.removeItem(K.unlockTimes);
+      localStorage.removeItem(K.promptAds);
+      localStorage.setItem(K.promptResetDate,today);
+    }catch{}
+    return true;
+  },
+
   unlocked:()=>{
-    const a=get(K.unlocked,[]);
-    const times=get(K.unlockTimes,{});
-    const ads=get(K.promptAds,{});
-    const now=Date.now();
-    const TWELVE_HOURS=12*60*60*1000;
-    let changed=false;
-
-    const active=a.filter(id=>{
-      const t=Number(times[id]||0);
-
-      // Migrate old unlocks that were saved before the 6-hour system.
-      if(!t){
-        times[id]=now;
-        changed=true;
-        return true;
-      }
-
-      if(now-t>=TWELVE_HOURS){
-        delete times[id];
-        delete ads[id];
-        changed=true;
-        return false;
-      }
-      return true;
-    });
-
-    // Remove stale timestamps that no longer have an unlock.
-    for(const id of Object.keys(times)){
-      if(!active.includes(id)){
-        delete times[id];
-        changed=true;
-      }
-    }
-
-    if(changed){
-      set(K.unlocked,active);
-      set(K.unlockTimes,times);
-      set(K.promptAds,ads);
-    }
-    return active;
+    store.resetDailyPromptState();
+    return get(K.unlocked,[]);
   },
 
   unlock:id=>{
-    const a=store.unlocked();
+    store.resetDailyPromptState();
+    const a=get(K.unlocked,[]);
     const times=get(K.unlockTimes,{});
     if(!a.includes(id))a.push(id);
     times[id]=Date.now();
@@ -132,11 +120,12 @@ export const store={
   },
 
   getPromptAdCount:id=>{
-    // Also triggers 12-hour expiry cleanup for this prompt.
-    store.unlocked();
+    store.resetDailyPromptState();
     return Number(get(K.promptAds,{})[id]||0);
   },
+
   incrementPromptAd:id=>{
+    store.resetDailyPromptState();
     const a=get(K.promptAds,{});
     a[id]=Number(a[id]||0)+1;
     set(K.promptAds,a);
