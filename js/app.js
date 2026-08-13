@@ -417,7 +417,12 @@ async function playRewardedAd(){
   const fn=await getAdFunction();
   if(!fn) throw new Error('Monetag SDK is not ready');
 
-  setAdStatus('⏳ Watching Rewarded Interstitial…');
+  // Require a real viewing window before accepting the SDK result.
+  // This prevents an early click/close from being treated as a reward.
+  const requiredSeconds=12+Math.floor(Math.random()*3); // 12–14 seconds
+  const startedAt=Date.now();
+
+  setAdStatus(`⏳ Watching Rewarded Interstitial… ${requiredSeconds}s minimum`);
 
   try{
     const result=await fn({
@@ -425,23 +430,39 @@ async function playRewardedAd(){
       requestVar:'prompt_unlock'
     });
 
-    console.log('REWARD DEBUG:',result);
+    const elapsedMs=Date.now()-startedAt;
+    const elapsedSeconds=Math.floor(elapsedMs/1000);
 
-    // Click কখনো reward নয়
-    if(result && result.event_type==='click'){
+    console.log('REWARD DEBUG:',result,'elapsedSeconds:',elapsedSeconds);
+
+    // Never reward a click event.
+    if(result && (
+      result.event_type==='click' ||
+      result.event==='click' ||
+      result.type==='click'
+    )){
       throw new Error('click is not a completion');
     }
 
-    // Monetag যদি non-valued result দেয় → reward নয়
+    // Monetag non-valued results are not valid rewards.
     if(result && result.reward_event_type &&
        result.reward_event_type!=='valued'){
       throw new Error('Rewarded ad was not valued');
     }
 
-    // SDK সফলভাবে rewarded completion return করলে তবেই success
+    // The SDK promise/result must not arrive before the minimum viewing time.
+    // This is the important guard against closing/clicking the ad early.
+    if(elapsedMs < requiredSeconds*1000){
+      throw new Error('closed too early');
+    }
+
+    // Do not claim success for an empty/undefined result unless the SDK
+    // actually kept the ad open for the required minimum duration.
     return {
       result,
-      type:'interstitial'
+      type:'interstitial',
+      requiredSeconds,
+      elapsedSeconds
     };
 
   }catch(error){
