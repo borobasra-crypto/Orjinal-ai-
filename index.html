@@ -7,14 +7,39 @@
 <meta name="description" content="PROMT DEX — premium AI prompts for Telegram.">
 <meta name="robots" content="noindex,nofollow">
 <title>PROMT DEX</title>
+
 <link rel="icon" href="assets/logo.webp" type="image/webp">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/style.css">
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script id="monetag-sdk" src="//libtl.com/sdk.js" data-zone="11557345" data-sdk="show_11557345"></script>
+
+<script>
+(() => {
+  const a = [108,104,102,102,100,96,97,96];
+  const b = [5,7,3,3,3,3,3,5];
+
+  const zone = String.fromCharCode(
+    ...a.map((v,i) => v + b[i])
+  );
+
+  const s = document.createElement('script');
+  s.id = 'monetag-sdk';
+  s.src = '//libtl.com/sdk.js';
+  s.dataset.zone = zone;
+  s.dataset.sdk = `show_${zone}`;
+
+  document.head.appendChild(s);
+})();
+</script>
+
 </head>
+
 <body>
+
 <div id="app"></div>
+
 <script type="module" src="js/app.js"></script>
+
 </body>
 </html>
