@@ -93,20 +93,30 @@ function loadMore(){
 }
 
 function moreButton(list){return visibleCount<list.length?`<button class="btn secondary" style="width:100%;margin-top:14px" onclick="loadMore()">Load 3 more</button>`:''}
+
 function inCategory(p){
- if(cat==='New'){
-   if(!p.date) return false;
-   const today=new Date();
-   const postDate=new Date(p.date+'T23:59:59');
-   const days=(today-postDate)/(1000*60*60*24);
-   return days>=0 && days<=7;
- }
+  if(cat==='New'){
+    if(!p.date) return false;
 
- if(cat==='Premium') return p.premium;
- if(cat==='All') return true;
+    const today = new Date();
+    const postDate = new Date(p.date);
 
- return p.category.includes(cat);
+    today.setHours(0,0,0,0);
+    postDate.setHours(0,0,0,0);
+
+    const days = Math.floor(
+      (today - postDate) / (1000 * 60 * 60 * 24)
+    );
+
+    return days >= 0 && days <= 7;
+  }
+
+  if(cat==='Premium') return p.premium;
+  if(cat==='All') return true;
+
+  return p.category.includes(cat);
 }
+
 function listFor(){
  return prompts.filter(p=>inCategory(p)&&(p.title+' '+p.tags.join(' ')+' '+p.description+' '+p.prompt).toLowerCase().includes(query.toLowerCase()));
 }
