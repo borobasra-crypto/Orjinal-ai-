@@ -156,7 +156,7 @@ function details(id){
  const progressPercent = Math.min((watchedAds / requiredAds) * 100, 100);
 
  return `<section class="page detail"><button class="btn secondary" onclick="goBack()">← Back</button><div style="height:12px"></div>
- <img src="${esc(p.image)}" alt="${esc(p.title)}" decoding="async"><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><p class="muted">${esc(p.description)}</p>
+ <img src="${esc(p.image)}" alt="${esc(p.title)}" decoding="async"><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><div class="muted description">${esc(p.description)}</div>
  <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  
  ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3>
