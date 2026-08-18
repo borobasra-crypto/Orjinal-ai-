@@ -119,6 +119,8 @@ History keeps the last 5 prompts.
 - No unnecessary backend request for the main page
 - Premium unlock failure does not unlock content
 
+
+
 ## Deploy
 
 ### Vercel
