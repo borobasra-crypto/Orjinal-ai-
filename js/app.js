@@ -326,6 +326,8 @@ let rewardAdBusy=false;
 
 function appUserAgeDays(){return store.appAgeDays ? store.appAgeDays() : 0;}
 
+
+
 function startInAppInterstitial(){
   return false; // inApp এড পুরোপুরি বন্ধ রাখার জন্য
   
