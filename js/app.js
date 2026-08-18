@@ -327,6 +327,8 @@ let rewardAdBusy=false;
 function appUserAgeDays(){return store.appAgeDays ? store.appAgeDays() : 0;}
 
 function startInAppInterstitial(){
+  return false; // inApp এড পুরোপুরি বন্ধ রাখার জন্য
+  
   if(inAppStarted || appUserAgeDays()<2) return false;
   const d=store.dailyOpenState ? store.dailyOpenState() : {count:0};
   // First 2 opens each day are intentionally ad-free.
