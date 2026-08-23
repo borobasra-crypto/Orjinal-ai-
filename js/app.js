@@ -1,4 +1,6 @@
-import {prompts,categories} from './data.js';
+import {categories,loadPrompts} from './data.js';
+
+let prompts=[];
 import {store} from './storage.js';
 import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
 import {isTelegramMiniApp} from './security.js';
@@ -12,13 +14,17 @@ let categoryScrollLeft=0;
 let monetagPromise=null;
 const startParam=tg?.initDataUnsafe?.start_param;
 
-/* Prevent native long-press link/image previews without changing normal taps/clicks. */
+/* Block native long-press previews for links/images without changing normal taps. */
 document.addEventListener('contextmenu', e => {
-  if (e.target.closest('a, img')) e.preventDefault();
+  if (e.target.closest('a, img, .no-long-press')) e.preventDefault();
 }, {passive:false});
 
 document.addEventListener('dragstart', e => {
-  if (e.target.closest('a, img')) e.preventDefault();
+  if (e.target.closest('a, img, .no-long-press')) e.preventDefault();
+}, {passive:false});
+
+document.addEventListener('selectstart', e => {
+  if (e.target.closest('a, img, .no-long-press')) e.preventDefault();
 }, {passive:false});
 
 window.openGuide = id => {
@@ -29,15 +35,15 @@ window.openGuide = id => {
 
 const noLinkPreviewStyle = document.createElement('style');
 noLinkPreviewStyle.textContent = `
-  a, img {
+  a, img, .no-long-press {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-user-drag: none;
   }
+  img { pointer-events: none; }
 `;
 document.head.appendChild(noLinkPreviewStyle);
-
-if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const icon={New:'✨',All:'✨',Trending:'🔥',Boy:'👨‍🎨',Girl:'👩‍🎨',Premium:'👑',Thumbnail:'▶️',Outfit:'👗',Filter:'🎨',Cinematic:'🎬',Realistic:'📷'};
@@ -51,7 +57,7 @@ const shareIcon=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0
 function header(){
  return `<header class="header">
  <button class="icon" onclick="openDrawer()" aria-label="Menu">☰</button>
- <div class="brand"><img class="brand-logo" src="assets/logo.webp" alt=""><span>PROMT DEX</span></div>
+ <div class="brand no-long-press"><img class="brand-logo" src="assets/logo.webp" alt=""><span>PROMT DEX</span></div>
  <button class="icon" onclick="go('search')" aria-label="Search">⌕</button>
  </header>`;
 }
@@ -70,7 +76,7 @@ function categoryChips(){
 function card(p){
  const fav=store.favorites().includes(p.id);
  return `<article class="card" onclick="openPrompt('${esc(p.id)}')">
- <div class="thumbwrap"><img class="thumb" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" decoding="async">
+ <div class="thumbwrap no-long-press"><img class="thumb" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" decoding="async">
  <button class="favorite-btn ${fav?'saved':''}" onclick="event.stopPropagation();toggleFav('${esc(p.id)}')" aria-label="${fav?'Remove from saved':'Save prompt'}">${bookmarkIcon(fav)}</button></div>
  <div class="cardbody"><div class="title">${esc(p.title)}</div><div class="meta">${p.category.slice(0,2).map(x=>esc(x)).join(' • ')}</div><div class="post-date">📅 ${esc(p.date||'')}</div>${p.premium?'<span class="badge">👑 Premium</span>':''}</div>
  </article>`;
@@ -181,7 +187,7 @@ function details(id){
  const progressPercent = Math.min((watchedAds / requiredAds) * 100, 100);
 
  return `<section class="page detail"><button class="btn secondary" onclick="goBack()">← Back</button><div style="height:12px"></div>
- <img src="${esc(p.image)}" alt="${esc(p.title)}" decoding="async"><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><div class="muted description">${esc(p.description)}</div>
+ <div class="detail-image no-long-press"><img src="${esc(p.image)}" alt="${esc(p.title)}" decoding="async"></div><h1>${esc(p.title)}</h1><div class="meta">${p.category.map(x=>esc(x)).join(' • ')}</div><div class="muted description">${esc(p.description)}</div>
  <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  
  ${p.premium&&!unlocked?`<div class="lock"><h3>🔐 Premium Prompt</h3>
@@ -213,8 +219,8 @@ function historyPage(){
 function render(){
  const content=route==='home'?home():route==='search'?searchPage():route==='favorites'?favorites():route==='history'?historyPage():details(route.split(':')[1]);
  app.innerHTML=`<div class="app">${header()}${content}${nav()}</div>
- <div id="drawer" class="drawer" onclick="closeDrawer()"><aside class="drawerbox" onclick="event.stopPropagation()"><div class="brand" style="margin-bottom:18px"><img class="brand-logo" src="assets/logo.webp" alt="">PROMT DEX</div>
- <a href="#" onclick="event.preventDefault();go('home')">🏠 Home</a><a href="#" onclick="event.preventDefault();go('search')">🔍 Explore</a><a href="#" onclick="event.preventDefault();go('favorites')">❤️ Favorites</a><a href="#" onclick="event.preventDefault();go('history')">🕐 History</a><a href="#" onclick="event.preventDefault();closeDrawer()">✕ Close</a></aside></div>`;
+ <div id="drawer" class="drawer" onclick="closeDrawer()"><aside class="drawerbox" onclick="event.stopPropagation()"><div class="brand no-long-press" style="margin-bottom:18px"><img class="brand-logo" src="assets/logo.webp" alt="">PROMT DEX</div>
+ <button type="button" onclick="go('home')">🏠 Home</button><button type="button" onclick="go('search')">🔍 Explore</button><button type="button" onclick="go('favorites')">❤️ Favorites</button><button type="button" onclick="go('history')">🕐 History</button><button type="button" onclick="closeDrawer()">✕ Close</button></aside></div>`;
 }
 function localDateKey(){
  const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -636,8 +642,18 @@ window.copyPrompt=async id=>{
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
 };
 
-function init(){
+async function init(){
  if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
+
+ try{
+   prompts=await loadPrompts();
+ }catch(error){
+   console.error('Prompt data load failed:',error);
+   app.innerHTML='<main class="security-screen"><div class="security-card"><img src="assets/logo.webp" class="security-logo" alt="PROMT DEX"><div class="eyebrow">PROMT DEX</div><h1>Unable to load prompts</h1><p class="muted">Please check the prompt data files and try again.</p><button class="btn" onclick="location.reload()">↻ Try again</button></div></main>';
+   return;
+ }
+
+ if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
  store.firstSeen();
  const openState=store.recordDailyOpen();
