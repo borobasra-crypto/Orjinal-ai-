@@ -3,7 +3,6 @@ import {store} from './storage.js';
 import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
 import {isTelegramMiniApp} from './security.js';
 
-
 const tg=window.Telegram?.WebApp||null;
 if(tg){try{tg.ready();tg.expand()}catch{}}
 
