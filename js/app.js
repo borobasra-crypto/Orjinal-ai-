@@ -1,5 +1,6 @@
 import {categories,loadPrompts} from './data.js';
 
+
 let prompts=[];
 import {store} from './storage.js';
 import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
