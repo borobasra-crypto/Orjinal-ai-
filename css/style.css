@@ -52,7 +52,6 @@ button,input{font:inherit}button{cursor:pointer;color:inherit}
 .share-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
 .share-option{min-height:84px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.055);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:.2s}
 .share-option:active{transform:scale(.96);background:rgba(255,255,255,.10)}
-.share-option b{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#06b6d4);font-size:17px}
 .share-option span{font-size:11px;font-weight:800;color:#ddd}
 .security-screen{min-height:100svh;display:grid;place-items:center;padding:22px;background:radial-gradient(600px 400px at 50% 15%,rgba(34,211,238,.12),transparent 65%),#07050d}
 .security-card{width:min(500px,100%);padding:28px;text-align:center;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.035));box-shadow:0 30px 100px #000b}
