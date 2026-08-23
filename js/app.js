@@ -1,4 +1,6 @@
-import {prompts,categories} from './data.js';
+import {categories,postFiles} from './data.js';
+
+let prompts=[];
 import {store} from './storage.js';
 import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
 import {isTelegramMiniApp} from './security.js';
@@ -11,6 +13,31 @@ let route='home',query='',cat='All',visibleCount=5,lastListKey='';
 let categoryScrollLeft=0;
 let monetagPromise=null;
 const startParam=tg?.initDataUnsafe?.start_param;
+
+/* Prevent native long-press link/image previews without changing normal taps/clicks. */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('a, img')) e.preventDefault();
+}, {passive:false});
+
+document.addEventListener('dragstart', e => {
+  if (e.target.closest('a, img')) e.preventDefault();
+}, {passive:false});
+
+window.openGuide = id => {
+  const p = prompts.find(x => x.id === id);
+  if (!p?.youtube) return;
+  window.open(p.youtube, '_blank', 'noopener,noreferrer');
+};
+
+const noLinkPreviewStyle = document.createElement('style');
+noLinkPreviewStyle.textContent = `
+  a, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+`;
+document.head.appendChild(noLinkPreviewStyle);
 
 if(startParam && prompts.some(p=>p.id===startParam)) route='details:'+startParam;
 
@@ -172,7 +199,7 @@ function details(id){
  <button class="btn" onclick="copyPrompt('${esc(p.id)}')">📋 Copy Prompt</button>
  <button class="btn secondary" onclick="sharePrompt('${esc(p.id)}')">${shareIcon} Share</button>
  <button class="btn secondary save-action" onclick="toggleFav('${esc(p.id)}')">${bookmarkIcon(store.favorites().includes(p.id))}<span>${store.favorites().includes(p.id)?'Saved':'Save'}</span></button>
- <a class="btn secondary" href="${esc(p.youtube)}" target="_blank" rel="noopener noreferrer">▶ YouTube Guide</a>
+ <button class="btn secondary" onclick="openGuide('${esc(p.id)}')">▶ YouTube Guide</button>
  </div></div>`}
  </section>`;
 }
@@ -219,7 +246,7 @@ function adProblem(id){
  <button class="icon" onclick="closeAdProblem()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 22px; cursor: pointer; color: inherit; padding: 4px 8px; z-index: 10;" aria-label="Close">✕</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
- <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><a class="btn secondary" href="${esc(p?.youtube||'#')}" target="_blank" rel="noopener noreferrer">▶ YouTube Solution</a></div></div>`;
+ <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><button class="btn secondary" onclick="openGuide('${esc(p?.id||'')}')">▶ YouTube Solution</button></div></div>`;
  document.body.appendChild(el);
 }
 
@@ -610,6 +637,19 @@ window.copyPrompt=async id=>{
  const p=prompts.find(x=>x.id===id);if(!p)return;
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
 };
+
+
+
+async function loadPosts(){
+  const files=await Promise.all(
+    postFiles.map(file=>fetch(file).then(r=>{
+      if(!r.ok) throw new Error(file);
+      return r.json();
+    }))
+  );
+  prompts=files;
+}
+
 
 function init(){
  if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
