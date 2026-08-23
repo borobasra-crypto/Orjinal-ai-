@@ -5,6 +5,8 @@ export const categories=['New','All','Trending','Boy','Girl','Premium','Thumbnai
 
 const DATA_INDEX_URL='./data/index.json';
 
+
+
 const normalizePrompt=(raw,source)=>{
   if(!raw || typeof raw!=='object' || Array.isArray(raw)){
     throw new Error(`Invalid prompt JSON: ${source}`);
