@@ -1,6 +1,4 @@
-import {categories,postFiles} from './data.js';
-
-let prompts=[];
+import {prompts,categories} from './data.js';
 import {store} from './storage.js';
 import {APP_CONFIG,getMonetagZone} from '../config/app-config.js';
 import {isTelegramMiniApp} from './security.js';
@@ -637,19 +635,6 @@ window.copyPrompt=async id=>{
  const p=prompts.find(x=>x.id===id);if(!p)return;
  try{await navigator.clipboard.writeText(p.prompt);alert('Prompt copied!')}catch{alert('Copy failed. Please select the prompt manually.')}
 };
-
-
-
-async function loadPosts(){
-  const files=await Promise.all(
-    postFiles.map(file=>fetch(file).then(r=>{
-      if(!r.ok) throw new Error(file);
-      return r.json();
-    }))
-  );
-  prompts=files;
-}
-
 
 function init(){
  if(!isTelegramMiniApp(tg)){securityBlock('telegram');return;}
