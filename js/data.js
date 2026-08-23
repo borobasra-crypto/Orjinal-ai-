@@ -64,3 +64,4 @@ export async function loadPrompts(){
 
   return posts;
 }
+
