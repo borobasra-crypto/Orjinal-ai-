@@ -46,7 +46,8 @@ export async function loadPrompts(){
       throw new Error(`Invalid prompt filename: ${name}`);
     }
 
-    const response=await fetch(`./data/${encodeURIComponent(name)}`,{cache:'no-store'});
+    const response=await fetch(`./js/data/${encodeURIComponent(name)}`,{cache:'no-store'});
+
     if(!response.ok) throw new Error(`Prompt file failed: ${name}`);
 
     const data=await response.json();
