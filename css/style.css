@@ -116,8 +116,23 @@ img{pointer-events:none}
 .detail-image img{display:block}
 .drawer button{cursor:pointer}
 
+
+.share-option b{
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  flex-shrink:0;
+  background:linear-gradient(135deg,#2563eb,#06b6d4);
+}
+
 .share-option b img{
-  width:24px;
-  height:24px;
-  object-fit:contain;
+  width:24px !important;
+  height:24px !important;
+  max-width:24px !important;
+  max-height:24px !important;
+  object-fit:contain !important;
+  display:block !important;
 }
