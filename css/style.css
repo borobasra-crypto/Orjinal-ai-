@@ -116,4 +116,8 @@ img{pointer-events:none}
 .detail-image img{display:block}
 .drawer button{cursor:pointer}
 
-
+.share-option b img{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+}
