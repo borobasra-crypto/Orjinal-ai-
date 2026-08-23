@@ -335,10 +335,10 @@ function showShareSheet(id){
  const el=document.createElement('div');el.className='popup-backdrop';el.id='shareSheet';el.innerHTML=`<div class="popup share-popup" role="dialog" aria-modal="true">
  <div class="share-head"><div><div class="eyebrow">Share prompt</div><h2>${esc(p.title)}</h2></div><button class="icon" onclick="closeShareSheet()">✕</button></div>
  <div class="share-grid">
- <button class="share-option" onclick="openShareUrl('https://t.me/share/url?url=${u}&text=${t}')"><b>✈</b><span>Telegram</span></button>
- <button class="share-option" onclick="openShareUrl('https://www.facebook.com/sharer/sharer.php?u=${u}')"><b>f</b><span>Facebook</span></button>
- <button class="share-option" onclick="openShareUrl('https://wa.me/?text=${t}')"><b>◉</b><span>WhatsApp</span></button>
- <button class="share-option" onclick="openShareUrl('fb-messenger://share/?link=${u}')"><b>⌁</b><span>Messenger</span></button>
+ <button class="share-option" onclick="openShareUrl('https://t.me/share/url?url=${u}&text=${t}')"><b><img src="./assets/telegram.webp" alt="Telegram"></b><span>Telegram</span></button>
+ <button class="share-option" onclick="openShareUrl('https://www.facebook.com/sharer/sharer.php?u=${u}')"><b><img src="./assets/facebook.webp" alt="Facebook"></b><span>Facebook</span></button>
+ <button class="share-option" onclick="openShareUrl('https://wa.me/?text=${t}')"><b><img src="./assets/whatsapp.webp" alt="WhatsApp"></b><span>WhatsApp</span></button>
+ <button class="share-option" onclick="openShareUrl('fb-messenger://share/?link=${u}')"><b><img src="./assets/messenger.webp" alt="Messenger"></b><span>Messenger</span></button>
  <button class="share-option" onclick="copyShareText(${JSON.stringify(text).replace(/</g,'\\u003c')})"><b>▣</b><span>Notes / Copy</span></button>
  <button class="share-option" onclick="nativeShare(${JSON.stringify(p.title).replace(/</g,'\\u003c')},${JSON.stringify(text).replace(/</g,'\\u003c')})"><b>↗</b><span>More apps</span></button>
  </div></div>`;
