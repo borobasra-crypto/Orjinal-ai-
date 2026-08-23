@@ -3,9 +3,7 @@
 // Add the JSON filename to ./data/index.json when publishing a new post.
 export const categories=['New','All','Trending','Boy','Girl','Premium','Thumbnail','Outfit','Filter','Cinematic','Realistic'];
 
-const DATA_INDEX_URL='./data/index.json';
-
-
+const DATA_INDEX_URL = new URL('./data/index.json', import.meta.url).href;
 
 const normalizePrompt=(raw,source)=>{
   if(!raw || typeof raw!=='object' || Array.isArray(raw)){
@@ -48,8 +46,10 @@ export async function loadPrompts(){
       throw new Error(`Invalid prompt filename: ${name}`);
     }
 
-    const response=await fetch(`./js/data/${encodeURIComponent(name)}`,{cache:'no-store'});
-
+    const response = await fetch(
+  new URL(`./data/${encodeURIComponent(name)}`, import.meta.url).href,
+  {cache:'no-store'}
+);
     if(!response.ok) throw new Error(`Prompt file failed: ${name}`);
 
     const data=await response.json();
@@ -64,4 +64,3 @@ export async function loadPrompts(){
 
   return posts;
 }
-
