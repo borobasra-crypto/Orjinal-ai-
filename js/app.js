@@ -251,7 +251,7 @@ function adProblem(id){
  <button class="icon" onclick="closeAdProblem()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 22px; cursor: pointer; color: inherit; padding: 4px 8px; z-index: 10;" aria-label="Close">✕</button>
  <div class="popup-orb">!</div><h2>Ad is not available right now</h2>
  <p class="muted">The rewarded ad could not be loaded or confirmed. Your prompt was not unlocked. Please try again later or open the guide below for help.</p>
- <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><button class="btn secondary" onclick="window.open('https://youtube.com/shorts/zq4aL77HHHc?si=kfHImZsKYLMbP7O','_blank','noopener,noreferrer')">▶ YouTube Solution</button></div></div>`;
+ <div class="actions popup-actions"><button class="btn" onclick="closeAdProblem()">Try Again</button><button class="btn secondary" onclick="window.open('https://youtube.com/shorts/zq4aL77HHHc?si=kfHImZsKYLMbP7O3','_blank','noopener,noreferrer')">▶ YouTube Solution</button></div></div>`;
  document.body.appendChild(el);
 }
 
